@@ -15,10 +15,12 @@ Modern AI agents can read, write, classify, and refactor text — but most task 
 
 `jobdone` flips that.
 
+```
 Tasks are just files.
 Status is just structure.
 Git is your audit log.
 AI is your operator.
+```
 
 ---
 
@@ -40,11 +42,11 @@ project/
     config.yaml
     tasks/
       todo/
-        implement-parser.md
+        3-implement-parser.md
       doing/
-        add-cli.md
+        2-add-cli.md
       done/
-        initial-design.md
+        1-initial-design.md
 ```
 
 Move file → change status.
@@ -67,11 +69,9 @@ statuses:
 
 defaults:
   priority: medium
-  owner: ""
   template: |
     ---
     priority: {{ priority }}
-    owner: {{ owner }}
     created: {{ date }}
     ---
 
@@ -88,8 +88,7 @@ defaults:
 |---|---|
 | `statuses` | Ordered list of status folders inside `.jobdone/tasks/`. The first is the default for new tasks. |
 | `defaults.priority` | Default priority for new tasks. |
-| `defaults.owner` | Default owner for new tasks (empty string = unassigned). |
-| `defaults.template` | Mustache-style template used when creating a new task file. Available variables: `priority`, `owner`, `date`. |
+| `defaults.template` | Mustache-style template used when creating a new task file. Available variables: `priority`, `date`. |
 
 If no `config.yaml` is present, the defaults above are assumed.
 
@@ -102,7 +101,6 @@ Tasks are Markdown files with YAML front matter.
 ```md
 ---
 priority: medium
-owner: ai-agent
 created: 2026-02-15
 ---
 
@@ -116,16 +114,6 @@ Implement token validation logic.
 - Handle expiration
 - Add tests
 ```
-
-Agents can:
-
-* parse metadata
-* update status
-* append logs
-* create subtasks
-* generate summaries
-
-Humans can just open and edit.
 
 ---
 
@@ -175,10 +163,3 @@ If your AI can read and write files — it can manage your project.
 ## License
 
 MIT
-
----
-
-## Status
-
-Early. Minimal. Opinionated.
-Exactly as intended.
