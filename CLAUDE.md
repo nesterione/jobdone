@@ -47,3 +47,6 @@ bun run format          # Auto-format with Biome
 - **Colors**: picocolors
 - **Build**: tsup (adds shebang, outputs ESM to `dist/`)
 - **Lint/format**: Biome (2-space indent, recommended rules)
+
+## Process 
+Do not add `.jobdone` folder to `.gitignore`, as these files should be tracked.

@@ -1,5 +1,4 @@
 .codem*
 node_modules/
 dist/
-.jobdone/
 *.pid
