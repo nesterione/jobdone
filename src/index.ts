@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { registerInitCommand } from "./commands/init.js";
+import { registerWebCommand } from "./commands/web.js";
 
 const program = new Command();
 
@@ -11,5 +12,6 @@ program
   .version("0.1.0");
 
 registerInitCommand(program);
+registerWebCommand(program);
 
 program.parse();
