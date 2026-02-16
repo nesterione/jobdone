@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { Command } from "commander";
@@ -45,9 +46,7 @@ export function registerWebCommand(program: Command): void {
       const handle = await startServer({ cwd, port });
 
       console.log(
-        pc.green(
-          `✓ Kanban board running at http://localhost:${handle.server.port}`,
-        ),
+        pc.green(`✓ Kanban board running at http://localhost:${handle.port}`),
       );
       console.log(pc.dim("  Press Ctrl+C to stop"));
 
@@ -63,18 +62,17 @@ export function registerWebCommand(program: Command): void {
 }
 
 async function startDetached(cwd: string, port: number): Promise<void> {
-  const entryPath = path.resolve(import.meta.dir, "../web/server.ts");
+  const scriptPath = process.argv[1];
 
-  const script = `
-    import { startServer } from "${entryPath}";
-    const handle = await startServer({ cwd: "${cwd}", port: ${port} });
-    console.log("Server started on port " + handle.server.port);
-  `;
-
-  const child = Bun.spawn(["bun", "-e", script], {
-    cwd,
-    stdio: ["ignore", "ignore", "ignore"],
-  });
+  const child = spawn(
+    process.execPath,
+    [scriptPath, "web", "--port", String(port)],
+    {
+      cwd,
+      detached: true,
+      stdio: "ignore",
+    },
+  );
 
   child.unref();
 
