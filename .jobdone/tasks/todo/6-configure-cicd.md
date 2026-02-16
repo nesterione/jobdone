@@ -5,8 +5,5 @@ created: 16.02.2026
 
 ## Description
 
-<!-- What needs to be done? -->
-
-## Acceptance Criteria
-
-- [ ] ...
+Configure CI/CD pipeline for jobdone.
+This pipeline should be running automatically on each push to the repository.

@@ -1,6 +1,6 @@
 {
   "name": "jobdone",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Simple text-based task manager. Built for AI agents. Comfortable for humans.",
   "type": "module",
   "files": [
@@ -22,7 +22,8 @@
     "build": "tsup",
     "test": "bun test",
     "lint": "biome check src",
-    "format": "biome format --write src"
+    "format": "biome format --write src",
+    "prepublishOnly": "bun run lint && bun test && bun run build"
   },
   "keywords": [
     "task",
