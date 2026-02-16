@@ -4,10 +4,12 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   extractDescription,
+  getNextTaskIndex,
   moveTask,
   parseFrontMatter,
   readAllTasks,
   titleFromFilename,
+  toKebabCase,
 } from "../../src/lib/task.js";
 
 let tmpDir: string;
@@ -131,6 +133,59 @@ Do the thing.
 
     const grouped = await readAllTasks(tmpDir, ["todo", "doing", "done"]);
     expect(grouped.todo).toHaveLength(0);
+  });
+});
+
+describe("toKebabCase", () => {
+  test("converts simple title", () => {
+    expect(toKebabCase("My New Task")).toBe("my-new-task");
+  });
+
+  test("handles special characters", () => {
+    expect(toKebabCase("Fix bug #123 (urgent!)")).toBe("fix-bug-123-urgent");
+  });
+
+  test("collapses multiple spaces and hyphens", () => {
+    expect(toKebabCase("too   many   spaces")).toBe("too-many-spaces");
+  });
+
+  test("returns empty string for non-alphanumeric input", () => {
+    expect(toKebabCase("!!!")).toBe("");
+  });
+});
+
+describe("getNextTaskIndex", () => {
+  test("returns 1 when no tasks exist", async () => {
+    const index = await getNextTaskIndex(tmpDir, ["todo", "doing", "done"]);
+    expect(index).toBe(1);
+  });
+
+  test("finds max index across all directories", async () => {
+    await fs.writeFile(
+      path.join(tmpDir, ".jobdone", "tasks", "todo", "2-task-a.md"),
+      "---\ntitle: A\n---\n",
+    );
+    await fs.writeFile(
+      path.join(tmpDir, ".jobdone", "tasks", "done", "7-task-b.md"),
+      "---\ntitle: B\n---\n",
+    );
+
+    const index = await getNextTaskIndex(tmpDir, ["todo", "doing", "done"]);
+    expect(index).toBe(8);
+  });
+
+  test("ignores non-md and non-numeric files", async () => {
+    await fs.writeFile(
+      path.join(tmpDir, ".jobdone", "tasks", "todo", "notes.txt"),
+      "not a task",
+    );
+    await fs.writeFile(
+      path.join(tmpDir, ".jobdone", "tasks", "todo", "no-number.md"),
+      "---\ntitle: X\n---\n",
+    );
+
+    const index = await getNextTaskIndex(tmpDir, ["todo", "doing", "done"]);
+    expect(index).toBe(1);
   });
 });
 

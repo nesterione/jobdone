@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { registerCreateCommand } from "./commands/create.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerWebCommand } from "./commands/web.js";
 
@@ -11,6 +12,7 @@ program
   )
   .version("0.1.0");
 
+registerCreateCommand(program);
 registerInitCommand(program);
 registerWebCommand(program);
 

@@ -3,6 +3,17 @@
   "version": "0.1.0",
   "description": "Simple text-based task manager. Built for AI agents. Comfortable for humans.",
   "type": "module",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "author": "Ihar Nestsiarenia",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nesterione/jobdone"
+  },
   "bin": {
     "jobdone": "./dist/index.js"
   },
@@ -13,7 +24,14 @@
     "lint": "biome check src",
     "format": "biome format --write src"
   },
-  "keywords": ["task", "todo", "cli", "ai", "agent", "git"],
+  "keywords": [
+    "task",
+    "todo",
+    "cli",
+    "ai",
+    "agent",
+    "git"
+  ],
   "license": "MIT",
   "dependencies": {
     "commander": "^14.0.3",

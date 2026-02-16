@@ -29,6 +29,44 @@ export function parseFrontMatter(content: string): {
   return { data, body: match[2] };
 }
 
+export function toKebabCase(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/[\s]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+export async function getNextTaskIndex(
+  cwd: string,
+  statuses: string[],
+): Promise<number> {
+  const tasksPath = getTasksPath(cwd);
+  let maxIndex = 0;
+
+  for (const status of statuses) {
+    const dirPath = path.join(tasksPath, status);
+    let entries: string[];
+    try {
+      entries = await fs.readdir(dirPath);
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      if (!entry.endsWith(".md")) continue;
+      const match = entry.match(/^(\d+)-/);
+      if (match) {
+        const index = Number.parseInt(match[1], 10);
+        if (index > maxIndex) maxIndex = index;
+      }
+    }
+  }
+
+  return maxIndex + 1;
+}
+
 export function titleFromFilename(filename: string): string {
   return filename
     .replace(/\.md$/i, "")
