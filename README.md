@@ -150,6 +150,23 @@ No special API required. Just file operations.
 
 ---
 
+## Contributing
+
+**Branching:** Create feature branches off `main`. Open a pull request to merge back — CI will run lint, build, and tests automatically.
+
+**Commit messages:** We use [Conventional Commits](https://www.conventionalcommits.org/):
+
+| Prefix | Use for | Example |
+|---|---|---|
+| `feat:` | New feature | `feat: add list filtering` |
+| `fix:` | Bug fix | `fix: resolve path on Windows` |
+| `chore:` | Maintenance | `chore: update dependencies` |
+| `docs:` | Documentation | `docs: update README examples` |
+| `refactor:` | Code restructure | `refactor: extract task parser` |
+| `test:` | Tests | `test: add create command tests` |
+
+---
+
 ## Philosophy
 
 `jobdone` follows the Unix mindset:
