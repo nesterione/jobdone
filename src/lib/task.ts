@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
+import type { JobdoneConfig } from "./config.js";
 import { getTasksPath } from "./paths.js";
 
 export interface Task {
@@ -150,4 +151,49 @@ export async function moveTask(
 
   await fs.mkdir(path.join(tasksPath, to), { recursive: true });
   await fs.rename(srcPath, destPath);
+}
+
+export interface CreateTaskResult {
+  filename: string;
+  relativePath: string;
+}
+
+export async function createTask(options: {
+  cwd: string;
+  title: string;
+  priority?: string;
+  config: JobdoneConfig;
+}): Promise<CreateTaskResult> {
+  const { cwd, title, config } = options;
+
+  const slug = toKebabCase(title);
+  if (!slug) {
+    throw new Error("Title produces an empty slug.");
+  }
+
+  const nextIndex = await getNextTaskIndex(cwd, config.statuses);
+  const filename = `${nextIndex}-${slug}.md`;
+
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, "0");
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const yyyy = now.getFullYear();
+  const dateStr = `${dd}.${mm}.${yyyy}`;
+
+  const priority = options.priority ?? config.defaults.priority;
+
+  const content = config.defaults.template
+    .replace("{{ title }}", title)
+    .replace("{{ priority }}", priority)
+    .replace("{{ date }}", dateStr);
+
+  const initialStatus = config.statuses[0];
+  const statusDir = path.join(getTasksPath(cwd), initialStatus);
+  await fs.mkdir(statusDir, { recursive: true });
+
+  const filePath = path.join(statusDir, filename);
+  await fs.writeFile(filePath, content, "utf-8");
+
+  const relativePath = `.jobdone/tasks/${initialStatus}/${filename}`;
+  return { filename, relativePath };
 }

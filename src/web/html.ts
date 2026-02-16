@@ -1,9 +1,31 @@
-export function generateHtml(statuses: string[]): string {
+export function generateHtml(
+  statuses: string[],
+  priorities: string[],
+  defaultPriority: string,
+): string {
+  const firstStatus = statuses[0];
   const columns = statuses
     .map(
       (s) => `
       <div class="column" data-status="${s}">
-        <h2>${s}</h2>
+        <div class="column-header">
+          <h2>${s}</h2>
+          ${s === firstStatus ? '<button class="add-btn" id="addTaskBtn" title="New task">+</button>' : ""}
+        </div>
+        ${
+          s === firstStatus
+            ? `<form class="create-form" id="createForm" style="display:none">
+          <input type="text" id="newTaskTitle" placeholder="Task title..." required autocomplete="off">
+          <select id="newTaskPriority">
+            ${priorities.map((p) => `<option value="${p}"${p === defaultPriority ? " selected" : ""}>${p}</option>`).join("")}
+          </select>
+          <div class="form-actions">
+            <button type="submit" class="btn-create">Create</button>
+            <button type="button" class="btn-cancel" id="cancelCreate">Cancel</button>
+          </div>
+        </form>`
+            : ""
+        }
         <div class="task-list" data-status="${s}"></div>
       </div>`,
     )
@@ -22,12 +44,14 @@ export function generateHtml(statuses: string[]): string {
     --bg: #f5f5f5; --surface: #fff; --text: #1a1a1a; --text-muted: #666;
     --border: #e0e0e0; --col-bg: #eaeaea;
     --high: #e53935; --medium: #fb8c00; --low: #43a047;
+    --accent: #1976d2; --accent-hover: #1565c0;
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #121212; --surface: #1e1e1e; --text: #e0e0e0; --text-muted: #999;
       --border: #333; --col-bg: #181818;
+      --accent: #64b5f6; --accent-hover: #42a5f5;
     }
   }
 
@@ -60,10 +84,59 @@ export function generateHtml(statuses: string[]): string {
     display: flex; flex-direction: column; gap: 8px;
   }
 
-  .column h2 {
-    font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;
-    color: var(--text-muted); padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  .column-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
   }
+
+  .column-header h2 {
+    font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+
+  .add-btn {
+    width: 24px; height: 24px; border-radius: 4px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text-muted); font-size: 1rem;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    line-height: 1; transition: all 0.15s;
+  }
+  .add-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .create-form {
+    background: var(--surface); border-radius: 6px; padding: 10px;
+    display: flex; flex-direction: column; gap: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  .create-form input,
+  .create-form select {
+    width: 100%; padding: 6px 8px; border: 1px solid var(--border);
+    border-radius: 4px; font-size: 0.85rem;
+    background: var(--bg); color: var(--text);
+  }
+
+  .create-form input:focus,
+  .create-form select:focus {
+    outline: none; border-color: var(--accent);
+  }
+
+  .form-actions { display: flex; gap: 6px; }
+
+  .btn-create, .btn-cancel {
+    padding: 5px 12px; border-radius: 4px; font-size: 0.8rem;
+    cursor: pointer; border: 1px solid var(--border);
+  }
+
+  .btn-create {
+    background: var(--accent); color: #fff; border-color: var(--accent);
+  }
+  .btn-create:hover { background: var(--accent-hover); }
+  .btn-create:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .btn-cancel {
+    background: var(--surface); color: var(--text-muted);
+  }
+  .btn-cancel:hover { background: var(--bg); }
 
   .task-list { flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 40px; }
 
@@ -160,7 +233,56 @@ function initSSE() {
   };
 }
 
-loadTasks().then(() => { initSortable(); initSSE(); });
+function initCreateForm() {
+  const btn = document.getElementById('addTaskBtn');
+  const form = document.getElementById('createForm');
+  const titleInput = document.getElementById('newTaskTitle');
+  const prioritySelect = document.getElementById('newTaskPriority');
+  const cancelBtn = document.getElementById('cancelCreate');
+
+  if (!btn || !form) return;
+
+  btn.addEventListener('click', () => {
+    form.style.display = form.style.display === 'none' ? 'flex' : 'none';
+    if (form.style.display !== 'none') titleInput.focus();
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    form.style.display = 'none';
+    titleInput.value = '';
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = titleInput.value.trim();
+    if (!title) return;
+
+    const submitBtn = form.querySelector('.btn-create');
+    submitBtn.disabled = true;
+
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, priority: prioritySelect.value })
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        titleInput.value = '';
+        form.style.display = 'none';
+        loadTasks();
+      } else {
+        alert(data.error || 'Failed to create task');
+      }
+    } catch (err) {
+      alert('Failed to create task');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+}
+
+loadTasks().then(() => { initSortable(); initSSE(); initCreateForm(); });
 </script>
 </body>
 </html>`;

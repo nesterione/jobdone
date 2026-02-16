@@ -1,10 +1,9 @@
 import fs from "node:fs/promises";
-import path from "node:path";
 import type { Command } from "commander";
 import pc from "picocolors";
 import { loadConfig } from "../lib/config.js";
-import { getJobdonePath, getTasksPath } from "../lib/paths.js";
-import { getNextTaskIndex, toKebabCase } from "../lib/task.js";
+import { getJobdonePath } from "../lib/paths.js";
+import { createTask } from "../lib/task.js";
 
 export function registerCreateCommand(program: Command): void {
   program
@@ -31,36 +30,17 @@ export function registerCreateCommand(program: Command): void {
 
       const config = await loadConfig(cwd);
 
-      const slug = toKebabCase(title);
-      if (!slug) {
-        console.error(pc.red("Error: title produces an empty slug."));
+      try {
+        const result = await createTask({
+          cwd,
+          title,
+          priority: opts.priority,
+          config,
+        });
+        console.log(pc.green(`✓ Created task: ${result.relativePath}`));
+      } catch (err) {
+        console.error(pc.red(`Error: ${(err as Error).message}`));
         process.exitCode = 1;
-        return;
       }
-
-      const nextIndex = await getNextTaskIndex(cwd, config.statuses);
-      const filename = `${nextIndex}-${slug}.md`;
-
-      const now = new Date();
-      const dd = String(now.getDate()).padStart(2, "0");
-      const mm = String(now.getMonth() + 1).padStart(2, "0");
-      const yyyy = now.getFullYear();
-      const dateStr = `${dd}.${mm}.${yyyy}`;
-
-      const priority = opts.priority ?? config.defaults.priority;
-
-      const content = config.defaults.template
-        .replace("{{ title }}", title)
-        .replace("{{ priority }}", priority)
-        .replace("{{ date }}", dateStr);
-
-      const todoDir = path.join(getTasksPath(cwd), "todo");
-      await fs.mkdir(todoDir, { recursive: true });
-
-      const filePath = path.join(todoDir, filename);
-      await fs.writeFile(filePath, content, "utf-8");
-
-      const relativePath = `.jobdone/tasks/todo/${filename}`;
-      console.log(pc.green(`✓ Created task: ${relativePath}`));
     });
 }

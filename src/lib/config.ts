@@ -4,6 +4,7 @@ import { getConfigPath } from "./paths.js";
 
 export interface JobdoneConfig {
   statuses: string[];
+  priorities: string[];
   defaults: {
     priority: string;
     template: string;
@@ -12,6 +13,7 @@ export interface JobdoneConfig {
 
 export const DEFAULT_CONFIG: JobdoneConfig = {
   statuses: ["todo", "doing", "done"],
+  priorities: ["low", "medium", "high"],
   defaults: {
     priority: "medium",
     template: `---
@@ -42,6 +44,7 @@ export async function loadConfig(cwd: string): Promise<JobdoneConfig> {
     const parsed = parse(content) as Partial<JobdoneConfig>;
     return {
       statuses: parsed.statuses ?? DEFAULT_CONFIG.statuses,
+      priorities: parsed.priorities ?? DEFAULT_CONFIG.priorities,
       defaults: {
         priority: parsed.defaults?.priority ?? DEFAULT_CONFIG.defaults.priority,
         template: parsed.defaults?.template ?? DEFAULT_CONFIG.defaults.template,

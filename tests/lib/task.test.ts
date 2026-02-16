@@ -2,7 +2,9 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { DEFAULT_CONFIG } from "../../src/lib/config.js";
 import {
+  createTask,
   extractDescription,
   getNextTaskIndex,
   moveTask,
@@ -220,5 +222,75 @@ describe("moveTask", () => {
       .then(() => true)
       .catch(() => false);
     expect(destExists).toBe(true);
+  });
+});
+
+describe("createTask", () => {
+  test("creates a task file in the first status directory", async () => {
+    const result = await createTask({
+      cwd: tmpDir,
+      title: "My new task",
+      config: DEFAULT_CONFIG,
+    });
+
+    expect(result.filename).toBe("1-my-new-task.md");
+    expect(result.relativePath).toBe(
+      ".jobdone/tasks/todo/1-my-new-task.md",
+    );
+
+    const filePath = path.join(
+      tmpDir,
+      ".jobdone",
+      "tasks",
+      "todo",
+      "1-my-new-task.md",
+    );
+    const content = await fs.readFile(filePath, "utf-8");
+    expect(content).toContain("title: My new task");
+    expect(content).toContain("priority: medium");
+  });
+
+  test("uses provided priority instead of default", async () => {
+    const result = await createTask({
+      cwd: tmpDir,
+      title: "Urgent fix",
+      priority: "high",
+      config: DEFAULT_CONFIG,
+    });
+
+    const filePath = path.join(
+      tmpDir,
+      ".jobdone",
+      "tasks",
+      "todo",
+      result.filename,
+    );
+    const content = await fs.readFile(filePath, "utf-8");
+    expect(content).toContain("priority: high");
+  });
+
+  test("throws on empty slug", async () => {
+    expect(
+      createTask({
+        cwd: tmpDir,
+        title: "!!!",
+        config: DEFAULT_CONFIG,
+      }),
+    ).rejects.toThrow("empty slug");
+  });
+
+  test("increments index based on existing tasks", async () => {
+    await fs.writeFile(
+      path.join(tmpDir, ".jobdone", "tasks", "done", "3-old-task.md"),
+      "---\ntitle: Old\n---\n",
+    );
+
+    const result = await createTask({
+      cwd: tmpDir,
+      title: "Next task",
+      config: DEFAULT_CONFIG,
+    });
+
+    expect(result.filename).toBe("4-next-task.md");
   });
 });

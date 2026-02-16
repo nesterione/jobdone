@@ -152,4 +152,89 @@ A sample task for testing.
     const notFound = await fetch(`http://localhost:${port}/nonexistent`);
     expect(notFound.status).toBe(404);
   });
+
+  test("POST /api/tasks creates a new task", async () => {
+    // Start server in background
+    serverProcess = Bun.spawn(
+      ["bun", "run", ENTRY, "web", "--port", String(port)],
+      {
+        cwd: tmpDir,
+        env: { ...process.env, PATH: process.env.PATH },
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    const res = await fetch(`http://localhost:${port}/api/tasks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "New web task", priority: "high" }),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as { ok: boolean; filename: string };
+    expect(data.ok).toBe(true);
+    expect(data.filename).toContain("new-web-task.md");
+
+    // Verify file exists on disk
+    const filePath = path.join(
+      tmpDir,
+      ".jobdone",
+      "tasks",
+      "todo",
+      data.filename,
+    );
+    const exists = await fs
+      .access(filePath)
+      .then(() => true)
+      .catch(() => false);
+    expect(exists).toBe(true);
+  });
+
+  test("POST /api/tasks returns 400 for missing title", async () => {
+    serverProcess = Bun.spawn(
+      ["bun", "run", ENTRY, "web", "--port", String(port)],
+      {
+        cwd: tmpDir,
+        env: { ...process.env, PATH: process.env.PATH },
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    const res = await fetch(`http://localhost:${port}/api/tasks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    expect(res.status).toBe(400);
+    const data = (await res.json()) as { error: string };
+    expect(data.error).toContain("Title is required");
+  });
+
+  test("POST /api/tasks returns 400 for invalid priority", async () => {
+    serverProcess = Bun.spawn(
+      ["bun", "run", ENTRY, "web", "--port", String(port)],
+      {
+        cwd: tmpDir,
+        env: { ...process.env, PATH: process.env.PATH },
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    const res = await fetch(`http://localhost:${port}/api/tasks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Test", priority: "critical" }),
+    });
+    expect(res.status).toBe(400);
+    const data = (await res.json()) as { error: string };
+    expect(data.error).toContain("Invalid priority");
+  });
 });

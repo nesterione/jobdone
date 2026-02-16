@@ -1,5 +1,5 @@
 import type { JobdoneConfig } from "../lib/config.js";
-import { moveTask, readAllTasks } from "../lib/task.js";
+import { createTask, moveTask, readAllTasks } from "../lib/task.js";
 import { generateHtml } from "./html.js";
 import type { TaskWatcher } from "./watcher.js";
 
@@ -8,7 +8,11 @@ export function createRouteHandler(
   config: JobdoneConfig,
   watcher: TaskWatcher,
 ): (req: Request) => Response | Promise<Response> {
-  const html = generateHtml(config.statuses);
+  const html = generateHtml(
+    config.statuses,
+    config.priorities,
+    config.defaults.priority,
+  );
 
   return async (req: Request): Promise<Response> => {
     const url = new URL(req.url);
@@ -22,6 +26,41 @@ export function createRouteHandler(
     if (req.method === "GET" && url.pathname === "/api/tasks") {
       const tasks = await readAllTasks(cwd, config.statuses);
       return Response.json(tasks);
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/tasks") {
+      const body = (await req.json()) as {
+        title?: string;
+        priority?: string;
+      };
+
+      if (!body.title || !body.title.trim()) {
+        return Response.json({ error: "Title is required" }, { status: 400 });
+      }
+
+      if (body.priority && !config.priorities.includes(body.priority)) {
+        return Response.json(
+          {
+            error: `Invalid priority. Must be one of: ${config.priorities.join(", ")}`,
+          },
+          { status: 400 },
+        );
+      }
+
+      try {
+        const result = await createTask({
+          cwd,
+          title: body.title.trim(),
+          priority: body.priority,
+          config,
+        });
+        return Response.json({ ok: true, filename: result.filename });
+      } catch (err) {
+        return Response.json(
+          { error: (err as Error).message },
+          { status: 500 },
+        );
+      }
     }
 
     if (req.method === "POST" && url.pathname === "/api/tasks/move") {
