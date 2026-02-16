@@ -17,3 +17,8 @@ defaults:
     ## Acceptance Criteria
 
     - [ ] ...
+priorities:
+  - low
+  - medium
+  - high
+version: 1
