@@ -1,0 +1,24 @@
+name: JobDone
+options:
+  bundleIdPrefix: com.jobdone
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "15.0"
+  minimumXcodeGenVersion: "2.38.0"
+
+targets:
+  JobDone:
+    type: application
+    platform: macOS
+    sources:
+      - JobDone
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jobdone.app
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.9"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        GENERATE_INFOPLIST_FILE: true
+        INFOPLIST_KEY_CFBundleDisplayName: "JobDone"
+        INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.productivity"
