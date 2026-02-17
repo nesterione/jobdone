@@ -34,7 +34,19 @@ struct TaskCard: View {
         .padding(10)
         .background(.background)
         .clipShape(RoundedRectangle(cornerRadius: 8))
-        .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+        )
+        .overlay(alignment: .leading) {
+            UnevenRoundedRectangle(
+                topLeadingRadius: 8,
+                bottomLeadingRadius: 8
+            )
+            .fill(PriorityBadge.color(for: task.priority))
+            .frame(width: 4)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 3, y: 2)
         .onTapGesture {
             withAnimation(.easeInOut(duration: 0.2)) {
                 isExpanded.toggle()
@@ -46,7 +58,7 @@ struct TaskCard: View {
 struct PriorityBadge: View {
     let priority: String
 
-    var color: Color {
+    static func color(for priority: String) -> Color {
         switch priority {
         case "high": return .red
         case "low": return .gray
@@ -55,13 +67,14 @@ struct PriorityBadge: View {
     }
 
     var body: some View {
+        let c = Self.color(for: priority)
         Text(priority)
             .font(.caption)
             .fontWeight(.medium)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(color.opacity(0.15))
-            .foregroundStyle(color)
+            .background(c.opacity(0.15))
+            .foregroundStyle(c)
             .clipShape(Capsule())
     }
 }
