@@ -45,8 +45,13 @@ struct KanbanColumn: View {
                     ForEach(tasks) { task in
                         TaskCard(task: task)
                             .draggable(task.filename)
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .top).combined(with: .opacity),
+                                removal: .opacity
+                            ))
                     }
                 }
+                .animation(.easeInOut(duration: 0.25), value: tasks.map(\.id))
             }
         }
         .frame(minWidth: 220, maxWidth: .infinity)

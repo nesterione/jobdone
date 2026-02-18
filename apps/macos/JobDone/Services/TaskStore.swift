@@ -1,5 +1,5 @@
 import Foundation
-import Combine
+import SwiftUI
 
 @Observable
 final class TaskStore {
@@ -39,8 +39,10 @@ final class TaskStore {
         errorMessage = nil
         do {
             let grouped = try await bridge.listTasks()
-            statuses = grouped.statuses
-            tasks = grouped.tasks
+            withAnimation(.easeInOut(duration: 0.25)) {
+                statuses = grouped.statuses
+                tasks = grouped.tasks
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -56,12 +58,35 @@ final class TaskStore {
         }
     }
 
-    func moveTask(filename: String, to status: String) async {
+    func moveTask(filename: String, to targetStatus: String) async {
+        // Optimistic update: move the task in local state immediately
+        var movedTask: TaskItem?
+        for status in statuses {
+            if let index = tasks[status]?.firstIndex(where: { $0.filename == filename }) {
+                movedTask = tasks[status]?.remove(at: index)
+                break
+            }
+        }
+        if var task = movedTask {
+            task = TaskItem(
+                filename: task.filename,
+                status: targetStatus,
+                title: task.title,
+                priority: task.priority,
+                created: task.created,
+                body: task.body
+            )
+            tasks[targetStatus, default: []].append(task)
+        }
+
+        // Run CLI in background, then sync with filesystem
         do {
-            try await bridge.moveTask(filename: filename, to: status)
+            try await bridge.moveTask(filename: filename, to: targetStatus)
             await refresh()
         } catch {
             errorMessage = error.localizedDescription
+            // Revert on failure by re-fetching
+            await refresh()
         }
     }
 
