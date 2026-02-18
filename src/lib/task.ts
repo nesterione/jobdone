@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { parse as parseYaml } from "yaml";
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import type { JobdoneConfig } from "./config.js";
 import { getTasksPath } from "./paths.js";
 
@@ -151,6 +151,104 @@ export async function moveTask(
 
   await fs.mkdir(path.join(tasksPath, to), { recursive: true });
   await fs.rename(srcPath, destPath);
+}
+
+export interface TaskDetail {
+  id: number;
+  filename: string;
+  status: string;
+  title: string;
+  priority: string;
+  created: string;
+  body: string;
+  frontMatter: Record<string, unknown>;
+}
+
+export async function findTaskById(
+  cwd: string,
+  statuses: string[],
+  id: number,
+): Promise<TaskDetail | null> {
+  const tasksPath = getTasksPath(cwd);
+  const prefix = `${id}-`;
+
+  for (const status of statuses) {
+    const dirPath = path.join(tasksPath, status);
+    let entries: string[];
+    try {
+      entries = await fs.readdir(dirPath);
+    } catch {
+      continue;
+    }
+
+    for (const filename of entries) {
+      if (!filename.endsWith(".md") || !filename.startsWith(prefix)) continue;
+
+      const filePath = path.join(dirPath, filename);
+      const raw = await fs.readFile(filePath, "utf-8");
+      const { data, body } = parseFrontMatter(raw);
+
+      return {
+        id,
+        filename,
+        status,
+        title: (data.title as string) || titleFromFilename(filename),
+        priority: (data.priority as string) || "medium",
+        created: (data.created as string) || "",
+        body,
+        frontMatter: data,
+      };
+    }
+  }
+
+  return null;
+}
+
+export interface UpdateTaskOptions {
+  frontMatter?: Record<string, unknown>;
+  body?: string;
+}
+
+export async function updateTask(
+  cwd: string,
+  statuses: string[],
+  id: number,
+  updates: UpdateTaskOptions,
+): Promise<{ filename: string; status: string }> {
+  const task = await findTaskById(cwd, statuses, id);
+  if (!task) {
+    throw new Error(`Task ${id} not found.`);
+  }
+
+  const tasksPath = getTasksPath(cwd);
+  const mergedFrontMatter = { ...task.frontMatter, ...updates.frontMatter };
+  const newBody = updates.body !== undefined ? updates.body : task.body;
+
+  const yamlStr = stringifyYaml(mergedFrontMatter).trimEnd();
+  const content = `---\n${yamlStr}\n---\n${newBody}`;
+
+  const newTitle = (mergedFrontMatter.title as string) || "";
+  const oldTitle = task.title;
+  let newFilename = task.filename;
+
+  if (newTitle && newTitle !== oldTitle) {
+    const slug = toKebabCase(newTitle);
+    if (slug) {
+      newFilename = `${id}-${slug}.md`;
+    }
+  }
+
+  const oldPath = path.join(tasksPath, task.status, task.filename);
+
+  if (newFilename !== task.filename) {
+    const newPath = path.join(tasksPath, task.status, newFilename);
+    await fs.writeFile(newPath, content, "utf-8");
+    await fs.unlink(oldPath);
+  } else {
+    await fs.writeFile(oldPath, content, "utf-8");
+  }
+
+  return { filename: newFilename, status: task.status };
 }
 
 export interface CreateTaskResult {

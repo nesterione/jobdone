@@ -158,6 +158,72 @@ export function generateHtml(
 
   .sortable-ghost { opacity: 0.4; }
   .sortable-drag { box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+
+  /* Slide-over panel */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+    z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .overlay.open { opacity: 1; pointer-events: auto; }
+
+  .slide-panel {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 480px; max-width: 100vw;
+    background: var(--surface); z-index: 101; box-shadow: -4px 0 24px rgba(0,0,0,0.15);
+    transform: translateX(100%); transition: transform 0.25s ease;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .slide-panel.open { transform: translateX(0); }
+
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .panel-header h3 { font-size: 1rem; font-weight: 600; }
+  .panel-header-actions { display: flex; gap: 8px; align-items: center; }
+
+  .panel-body { flex: 1; overflow-y: auto; padding: 20px; }
+
+  .panel-btn {
+    padding: 5px 12px; border-radius: 4px; font-size: 0.8rem;
+    cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  }
+  .panel-btn:hover { background: var(--bg); }
+  .panel-btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .panel-btn-primary:hover { background: var(--accent-hover); }
+  .panel-btn-close {
+    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; padding: 0;
+  }
+
+  .panel-error { color: var(--high); font-size: 0.8rem; margin-bottom: 8px; }
+
+  /* View mode */
+  .detail-meta { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .detail-meta-item {
+    font-size: 0.8rem; color: var(--text-muted); background: var(--bg);
+    padding: 4px 10px; border-radius: 4px;
+  }
+  .detail-meta-item strong { color: var(--text); }
+  .detail-body { font-size: 0.9rem; line-height: 1.6; }
+  .detail-body h1, .detail-body h2, .detail-body h3 { margin: 16px 0 8px; }
+  .detail-body p { margin: 8px 0; }
+  .detail-body ul, .detail-body ol { margin: 8px 0; padding-left: 20px; }
+  .detail-body code { background: var(--bg); padding: 2px 4px; border-radius: 3px; font-size: 0.85em; }
+  .detail-body pre { background: var(--bg); padding: 12px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
+  .detail-body pre code { background: none; padding: 0; }
+
+  /* Edit mode */
+  .edit-form { display: flex; flex-direction: column; gap: 12px; }
+  .edit-field label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
+  .edit-field input, .edit-field select, .edit-field textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+    border-radius: 4px; font-size: 0.85rem; background: var(--bg); color: var(--text);
+    font-family: inherit;
+  }
+  .edit-field input:focus, .edit-field select:focus, .edit-field textarea:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .edit-field textarea { min-height: 200px; resize: vertical; font-family: monospace; }
 </style>
 </head>
 <body>
@@ -169,7 +235,21 @@ export function generateHtml(
   ${columns}
 </div>
 
+<!-- Slide-over panel -->
+<div class="overlay" id="overlay"></div>
+<div class="slide-panel" id="slidePanel">
+  <div class="panel-header">
+    <h3 id="panelTitle">Task Detail</h3>
+    <div class="panel-header-actions">
+      <button class="panel-btn" id="panelToggleEdit">Edit</button>
+      <button class="panel-btn panel-btn-close" id="panelClose">&times;</button>
+    </div>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
 <script>
 const statuses = ${JSON.stringify(statuses)};
 
@@ -282,7 +362,150 @@ function initCreateForm() {
   });
 }
 
-loadTasks().then(() => { initSortable(); initSSE(); initCreateForm(); });
+const priorities = ${JSON.stringify(priorities)};
+let currentTask = null;
+let panelMode = 'view'; // 'view' or 'edit'
+let isDragging = false;
+
+function extractIdFromFilename(filename) {
+  const m = filename.match(/^(\\d+)-/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function openPanel() {
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('slidePanel').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('slidePanel').classList.remove('open');
+  currentTask = null;
+  panelMode = 'view';
+}
+
+async function openTaskDetail(filename) {
+  const id = extractIdFromFilename(filename);
+  if (!id) return;
+
+  try {
+    const res = await fetch('/api/tasks/' + id);
+    if (!res.ok) return;
+    currentTask = await res.json();
+    panelMode = 'view';
+    renderPanel();
+    openPanel();
+  } catch (e) {
+    // ignore fetch errors
+  }
+}
+
+function renderPanel() {
+  if (!currentTask) return;
+  const body = document.getElementById('panelBody');
+  const toggleBtn = document.getElementById('panelToggleEdit');
+  document.getElementById('panelTitle').textContent = currentTask.title;
+
+  if (panelMode === 'view') {
+    toggleBtn.textContent = 'Edit';
+    const rendered = typeof marked !== 'undefined' && marked.parse
+      ? marked.parse(currentTask.body || '*No description*')
+      : esc(currentTask.body || 'No description');
+    body.innerHTML =
+      '<div class="detail-meta">' +
+        '<div class="detail-meta-item"><strong>Status:</strong> ' + esc(currentTask.status) + '</div>' +
+        '<div class="detail-meta-item"><strong>Priority:</strong> ' + esc(currentTask.priority) + '</div>' +
+        (currentTask.created ? '<div class="detail-meta-item"><strong>Created:</strong> ' + esc(currentTask.created) + '</div>' : '') +
+        '<div class="detail-meta-item"><strong>ID:</strong> ' + currentTask.id + '</div>' +
+      '</div>' +
+      '<div class="detail-body">' + rendered + '</div>';
+  } else {
+    toggleBtn.textContent = 'View';
+    body.innerHTML =
+      '<div id="panelError" class="panel-error"></div>' +
+      '<div class="edit-form">' +
+        '<div class="edit-field"><label>Title</label>' +
+          '<input type="text" id="editTitle" value="' + esc(currentTask.title) + '">' +
+        '</div>' +
+        '<div class="edit-field"><label>Priority</label>' +
+          '<select id="editPriority">' +
+            priorities.map(function(p) {
+              return '<option value="' + p + '"' + (p === currentTask.priority ? ' selected' : '') + '>' + p + '</option>';
+            }).join('') +
+          '</select>' +
+        '</div>' +
+        '<div class="edit-field"><label>Created</label>' +
+          '<input type="text" id="editCreated" value="' + esc(currentTask.created) + '">' +
+        '</div>' +
+        '<div class="edit-field"><label>Body (Markdown)</label>' +
+          '<textarea id="editBody">' + esc(currentTask.body) + '</textarea>' +
+        '</div>' +
+        '<div><button class="panel-btn panel-btn-primary" id="saveTaskBtn">Save</button></div>' +
+      '</div>';
+
+    document.getElementById('saveTaskBtn').addEventListener('click', saveTask);
+  }
+}
+
+async function saveTask() {
+  if (!currentTask) return;
+  const errEl = document.getElementById('panelError');
+  errEl.textContent = '';
+
+  const title = document.getElementById('editTitle').value.trim();
+  if (!title) { errEl.textContent = 'Title cannot be empty.'; return; }
+
+  const priority = document.getElementById('editPriority').value;
+  const created = document.getElementById('editCreated').value.trim();
+  const body = document.getElementById('editBody').value;
+
+  const saveBtn = document.getElementById('saveTaskBtn');
+  saveBtn.disabled = true;
+
+  try {
+    const res = await fetch('/api/tasks/' + currentTask.id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        frontMatter: { title: title, priority: priority, created: created },
+        body: body
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Failed to save.'; return; }
+    // Refresh and re-open in view mode
+    await loadTasks();
+    const refreshRes = await fetch('/api/tasks/' + currentTask.id);
+    if (refreshRes.ok) currentTask = await refreshRes.json();
+    panelMode = 'view';
+    renderPanel();
+  } catch (e) {
+    errEl.textContent = 'Failed to save task.';
+  } finally {
+    saveBtn.disabled = false;
+  }
+}
+
+function initPanel() {
+  document.getElementById('overlay').addEventListener('click', closePanel);
+  document.getElementById('panelClose').addEventListener('click', closePanel);
+  document.getElementById('panelToggleEdit').addEventListener('click', function() {
+    panelMode = panelMode === 'view' ? 'edit' : 'view';
+    renderPanel();
+  });
+
+  // Click handler on task cards (delegate from board)
+  document.querySelector('.board').addEventListener('mousedown', function() { isDragging = false; });
+  document.querySelector('.board').addEventListener('mousemove', function() { isDragging = true; });
+  document.querySelector('.board').addEventListener('click', function(e) {
+    if (isDragging) return;
+    const card = e.target.closest('.task-card');
+    if (!card) return;
+    openTaskDetail(card.dataset.filename);
+  });
+}
+
+loadTasks().then(() => { initSortable(); initSSE(); initCreateForm(); initPanel(); });
 </script>
 </body>
 </html>`;
