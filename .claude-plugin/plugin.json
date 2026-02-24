@@ -1,0 +1,9 @@
+{
+  "name": "jobdone",
+  "version": "1.0.0",
+  "description": "Claude Code skills for jobdone task management. Refine and improve task files.",
+  "author": { "name": "Ihar Nestsiarenia" },
+  "repository": "https://github.com/nesterione/jobdone",
+  "license": "MIT",
+  "keywords": ["jobdone", "tasks", "ticket", "refinement"]
+}

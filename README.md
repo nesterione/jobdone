@@ -175,6 +175,55 @@ No special API required. Just file operations.
 
 If your AI can read and write files — it can manage your project.
 
+### A tool without a brain — by design
+
+Every product wants to add AI these days. `jobdone` does not.
+
+There is no embedded LLM. No "smart suggestions". No copilot mode. `jobdone` is deliberately, stubbornly dumb. It creates files and moves them between folders. That's the whole product.
+
+What we do instead: we ship **skills for AI tools** — prompts that teach agents like Claude Code how to work with jobdone tasks. The intelligence lives in the AI you already have. `jobdone` just gives it a clean, predictable surface to work on.
+
+This is not a limitation. It's the point.
+
+---
+
+## Claude Code Plugin
+
+The jobdone repo ships as a **Claude Code plugin** — install it once and get AI skills for working with your task files in any project.
+
+### What it does
+
+The `refine-task` skill reviews a jobdone task file and helps you improve it:
+
+- Validates YAML frontmatter (`priority`, `created` format, `title` quality)
+- Checks that the body explains *why*, not just *what*
+- Ensures acceptance criteria are concrete, testable, and in `- [ ]` format
+- Shows a before/after review and rewrites the file on your confirmation
+
+### Run locally (inside this repo)
+
+```bash
+claude --plugin-dir .
+```
+
+Then invoke the skill with a task file path:
+
+```
+/jobdone:refine-task .jobdone/tasks/todo/10-add-custom-skills-for-ai.md
+```
+
+### Install from GitHub (any project)
+
+```
+/plugin install https://github.com/nesterione/jobdone
+```
+
+Then use it the same way:
+
+```
+/jobdone:refine-task .jobdone/tasks/todo/my-task.md
+```
+
 ---
 
 ## License
