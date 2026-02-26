@@ -193,7 +193,15 @@ The jobdone repo ships as a **Claude Code plugin** — install it once and get A
 
 ### What it does
 
-The `refine-task` skill reviews a jobdone task file and helps you improve it:
+**`new-task`** — turn a rough idea into a ready-to-create task draft:
+
+- Derives a clean imperative title (≤60 chars)
+- Suggests a priority (`low` / `medium` / `high`)
+- Writes a one-sentence context explaining why the task matters
+- Generates 2–4 concrete, testable acceptance criteria
+- Prints the exact `jobdone create` command to run
+
+**`refine-task`** — review and improve an existing task file:
 
 - Validates YAML frontmatter (`priority`, `created` format, `title` quality)
 - Checks that the body explains *why*, not just *what*
@@ -206,7 +214,13 @@ The `refine-task` skill reviews a jobdone task file and helps you improve it:
 claude --plugin-dir .
 ```
 
-Then invoke the skill with a task file path:
+Capture a new task from a rough idea:
+
+```
+/jobdone:new-task add export feature for task reports
+```
+
+Then refine the created file:
 
 ```
 /jobdone:refine-task .jobdone/tasks/todo/10-add-custom-skills-for-ai.md
