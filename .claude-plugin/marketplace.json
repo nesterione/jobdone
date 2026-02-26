@@ -1,5 +1,9 @@
 {
   "name": "jobdone",
+  "owner": {
+    "name": "nesterione",
+    "url": "nesterione@gmail.com"
+  },
   "description": "Claude Code skills for jobdone task management",
   "plugins": [
     {
