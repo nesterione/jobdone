@@ -214,8 +214,16 @@ Then invoke the skill with a task file path:
 
 ### Install from GitHub (any project)
 
+First, register the jobdone marketplace:
+
 ```
-/plugin install https://github.com/nesterione/jobdone
+/plugin marketplace add nesterione/jobdone
+```
+
+Then install the plugin:
+
+```
+/plugin install jobdone@nesterione-jobdone
 ```
 
 Then use it the same way:

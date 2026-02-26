@@ -1,0 +1,11 @@
+{
+  "name": "jobdone",
+  "description": "Claude Code skills for jobdone task management",
+  "plugins": [
+    {
+      "name": "jobdone",
+      "source": ".",
+      "description": "Refine and improve jobdone task files"
+    }
+  ]
+}
