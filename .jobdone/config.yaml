@@ -1,6 +1,6 @@
 statuses:
+  - backlog
   - todo
-  - doing
   - done
 defaults:
   priority: medium
