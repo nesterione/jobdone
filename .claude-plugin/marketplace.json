@@ -2,13 +2,15 @@
   "name": "jobdone",
   "owner": {
     "name": "nesterione",
-    "url": "nesterione@gmail.com"
+    "email": "nesterione@gmail.com"
   },
-  "description": "Claude Code skills for jobdone task management",
+  "metadata": {
+    "description": "Claude Code skills for jobdone task management"
+  },
   "plugins": [
     {
       "name": "jobdone",
-      "source": ".",
+      "source": "./",
       "description": "Refine and improve jobdone task files"
     }
   ]
