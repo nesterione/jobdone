@@ -1,6 +1,6 @@
 {
   "name": "jobdone",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "description": "Simple text-based task manager. Built for AI agents. Comfortable for humans.",
   "type": "module",
   "files": [
