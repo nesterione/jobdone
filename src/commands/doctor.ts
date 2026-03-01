@@ -16,7 +16,9 @@ interface TaskEntry {
 export function registerDoctorCommand(program: Command): void {
   program
     .command("doctor")
-    .description("Scan task folders for issues (duplicate IDs, missing prefixes)")
+    .description(
+      "Scan task folders for issues (duplicate IDs, missing prefixes)",
+    )
     .option("--fix", "Automatically rename files to resolve issues")
     .action(async (opts: { fix?: boolean }) => {
       const cwd = process.cwd();
@@ -119,7 +121,9 @@ export function registerDoctorCommand(program: Command): void {
         const keptDisplay = `${kept.status}/${kept.filename}`;
         const conflictParts = conflicting.map((entry) => {
           const slugMatch = entry.filename.match(/^\d+-(.+)$/);
-          const slug = slugMatch ? slugMatch[1] : toKebabCase(entry.filename.replace(/\.md$/, ""));
+          const slug = slugMatch
+            ? slugMatch[1]
+            : toKebabCase(entry.filename.replace(/\.md$/, ""));
           const newFilename = `${nextId}-${slug}`;
           const oldPath = path.join(tasksPath, entry.status, entry.filename);
           const newPath = path.join(tasksPath, entry.status, newFilename);
