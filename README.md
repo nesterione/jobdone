@@ -150,6 +150,22 @@ No special API required. Just file operations.
 
 ---
 
+## Testing
+
+```bash
+bun test                               # all tests
+bun test tests/commands/               # per-command tests
+bun test tests/integration/            # multi-command journey tests
+bun test tests/integration/task-lifecycle.test.ts  # single journey
+```
+
+The test suite has two layers:
+
+- **`tests/commands/`** — each command is tested in isolation against a pre-seeded workspace.
+- **`tests/integration/`** — multi-command journeys that verify cross-command state (e.g. rename → move, doctor → create, init → full flow).
+
+---
+
 ## Contributing
 
 **Branching:** Create feature branches off `main`. Open a pull request to merge back — CI will run lint, build, and tests automatically.

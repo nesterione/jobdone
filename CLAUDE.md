@@ -39,6 +39,27 @@ bun run format          # Auto-format with Biome
 - Temp directories via `os.tmpdir()` for filesystem isolation (created in `beforeEach`, cleaned in `afterEach`)
 - The `runCli()` helper takes args and cwd, uses an absolute path to `src/index.ts`
 
+### Two test layers
+
+**`tests/commands/`** — per-command unit-style tests. Each file tests one command in isolation against a pre-seeded workspace. Add a file here when adding a new command.
+
+**`tests/integration/`** — multi-command journey tests. Each file simulates a real user workflow spanning several commands in sequence to verify cross-command state propagation. Shared helpers (`runCli`, `createInitializedWorkspace`, `cleanupWorkspace`) live in `tests/integration/helpers.ts`.
+
+| Journey file | What it covers |
+|---|---|
+| `task-lifecycle.test.ts` | Single task from create through update, move, and done |
+| `bulk-management.test.ts` | Multiple tasks, ID continuity, aggregate list state |
+| `title-rename-continuity.test.ts` | `update --set title=` renames the file; subsequent get/move/list adapt |
+| `corrupt-recovery.test.ts` | Doctor detects and fixes bad state; workflow resumes after fix |
+| `fresh-setup.test.ts` | `init` as a real CLI call; migrate flow; pre-init error consistency |
+
+Run integration tests in isolation:
+
+```bash
+bun test tests/integration/
+bun test tests/integration/task-lifecycle.test.ts
+```
+
 ## Stack
 
 - **Runtime/package manager**: bun (ESM-only, Node 22+ target)
