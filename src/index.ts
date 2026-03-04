@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
 import { Command } from "commander";
+import { registerConfigCommand } from "./commands/config.js";
 import { registerCreateCommand } from "./commands/create.js";
 import { registerDoctorCommand } from "./commands/doctor.js";
 import { registerGetCommand } from "./commands/get.js";
@@ -25,6 +26,7 @@ program
   )
   .version(version);
 
+registerConfigCommand(program);
 registerCreateCommand(program);
 registerDoctorCommand(program);
 registerGetCommand(program);

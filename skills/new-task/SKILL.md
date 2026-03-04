@@ -15,43 +15,26 @@ The raw idea is: `$ARGUMENTS`
 1. **Derive the task fields** from the idea:
 
    - **Title** — short imperative phrase, ≤60 characters (e.g. "Add export command for task reports")
-   - **Priority** — default `medium`; use `high` if the idea implies urgency or blocking work; use `low` if it's clearly a nice-to-have
-   - **Context** — one sentence explaining what problem this solves and why it matters
-   - **Acceptance Criteria** — 2–4 checkbox items that are concrete and testable
+   - **Body** — one sentence of context (why this matters) followed by 2–4 concrete, testable acceptance criteria in `- [ ]` format
+   - **Priority** — only set explicitly if the idea clearly implies urgency (`high`) or a nice-to-have (`low`); otherwise omit and let the default apply
+   - **Custom fields** — only include if the user mentioned them (e.g. assignee, ticket number)
 
-2. **Output the proposed task** in a fenced markdown block:
+   > If the user mentioned a non-default priority label or custom fields, run `jobdone config --json` first to learn the valid values from `fields`.
 
-   ````
-   ```md
-   ---
-   priority: <priority>
-   created: <today's date in DD.MM.YYYY>
-   title: <title>
-   ---
+2. **Output the ready-to-run CLI command**:
 
-   <context sentence>
-
-   ## Acceptance Criteria
-
-   - [ ] <criterion 1>
-   - [ ] <criterion 2>
-   - [ ] <criterion 3 if needed>
-   - [ ] <criterion 4 if needed>
    ```
-   ````
+   jobdone create "<title>" [--body "<body>"] [-p <priority>] [--set <key>=<value>]
+   ```
 
-3. **Output the ready-to-run CLI command** to create the task:
+   Example with body:
+   ```
+   jobdone create "Add export command for task reports" \
+     --body "Users need to share task lists externally.\n\n## Acceptance Criteria\n\n- [ ] Export to CSV\n- [ ] Export to JSON\n- [ ] Filename includes date"
+   ```
 
-   - If the task has no body content or custom fields:
-     ```
-     jobdone create "<title>" -p <priority>
-     ```
-   - If the task has a description body or custom front matter fields (e.g. ticket, assignee, sprint):
-     ```
-     jobdone create "<title>" -p <priority> --body "<description>" --set <key>=<value>
-     ```
-   Use `--set` once per field. Both `--body` and `--set` are optional and can be used independently or combined.
+   Omit `-p` if priority is default. Use `--set` once per custom field.
 
-4. **Print this tip** on a new line:
+3. **Print this tip** on a new line:
 
    > Tip: after creating the file, run `/jobdone:refine-task` on it to polish the draft.

@@ -1,55 +1,64 @@
 ---
 name: refine-task
-description: Review and improve a jobdone task file. Use when refining task descriptions,
-  titles, acceptance criteria, or priority. Invoke with a path to a .md task file.
-argument-hint: [path/to/task.md]
+description: Review and improve a jobdone task through iterative Q&A, then write back the refined version via CLI. Invoke with a path to a task file and an optional instruction.
+argument-hint: "[path/to/task.md] [instruction]"
 ---
 
-You are a task refinement assistant for the **jobdone** task manager. jobdone tasks are Markdown files with YAML frontmatter stored in `.jobdone/tasks/{todo,doing,done}/`.
+You are a task refinement assistant for the **jobdone** task manager. Your goal is to deeply understand the task intent and produce a well-defined, implementation-ready description — through conversation, not assumptions.
 
-## Expected task format
+## Input
 
-Refer to `skills/refine-task/task-template.md` as the quality benchmark for an ideal task.
-
-A well-formed task looks like:
-
-```
----
-priority: medium        # low | medium | high
-created: 24.02.2026     # DD.MM.YYYY
-title: Implement user login flow
----
-
-Short paragraph explaining WHY this task exists and the context behind it.
-
-## Acceptance Criteria
-
-- [ ] Concrete, testable criterion 1
-- [ ] Concrete, testable criterion 2
-```
+`$ARGUMENTS` may contain:
+- A path to a task file (e.g. `.jobdone/tasks/todo/3-fix-bug.md`) — **required**
+- An optional free-form instruction describing what to focus on or change (e.g. "make acceptance criteria more specific" or "this is actually high priority")
 
 ## Steps
 
-1. **Read the task file** at `$ARGUMENTS`.
+1. **Load the task**
 
-2. **Validate YAML frontmatter** — flag any of these issues:
-   - `priority` is not one of `low`, `medium`, `high`
-   - `created` does not match `DD.MM.YYYY` format
-   - `title` is unclear, not imperative, overly long, or auto-generated (e.g. looks like `10 Add Custom Skills For Ai`)
+   If a file path was provided, extract the numeric ID prefix (e.g. `3-fix-bug.md` → ID `3`) and run:
+   ```
+   jobdone get <id>
+   ```
+   Use that output as the task content to work with.
 
-3. **Check body quality** — flag any of these issues:
-   - Description only says *what* without explaining *why* or giving context
-   - No acceptance criteria section, or criteria are vague / not in `- [ ]` format
-   - Placeholder text, orphaned headings, or numbered list used instead of structured sections
+   > If the user mentioned a non-default priority or custom fields in the instruction, also run `jobdone config --json` to learn the valid values.
 
-4. **Present a before/after review** in this structure:
+2. **Analyse the task**
 
-   ### Issues found
-   List each issue clearly.
+   Read the task content carefully. Consider:
+   - Is the **title** clear and imperative?
+   - Is there a **why** — context explaining the reason this task exists?
+   - Are **acceptance criteria** present, concrete, and testable?
+   - Are there **implicit assumptions** or **ambiguities** that could block implementation?
+   - Are there **scope boundaries** that should be made explicit?
+   - Does the optional instruction signal anything specific to focus on or change?
 
-   ### Suggested version
-   Show the complete refined task file, ready to copy.
+3. **Ask clarifying questions**
 
-5. **Ask:** "Apply these changes to the file?"
+   Based on the gaps and ambiguities you found, formulate a focused set of questions for the user. Ask only what is necessary — don't ask about things already clear in the task.
 
-6. **If the user confirms**, write the refined content back to `$ARGUMENTS` using the exact path provided. Do not modify anything else.
+   Wait for the user to reply.
+
+4. **Follow up if needed**
+
+   If the answers reveal new gaps or raise further questions, ask them now. Repeat until you have everything needed to write a complete, unambiguous task.
+
+5. **Rewrite the task**
+
+   Once all questions are resolved, produce the refined task body. It should capture:
+   - A clear, imperative title
+   - A concise **why** paragraph
+   - **Acceptance Criteria** — concrete, testable, in `- [ ]` format
+   - **Out of Scope** section if boundaries need to be explicit
+   - Any other details that will help someone implement without needing to ask follow-up questions
+
+   Show the refined content to the user.
+
+6. **Apply via CLI**
+
+   Run the update using `jobdone update`:
+   ```
+   jobdone update <id> --set title="..." --body "..."
+   ```
+   Include `--set` for any changed front matter fields and `--body` for the body. Both can be combined in one command.
