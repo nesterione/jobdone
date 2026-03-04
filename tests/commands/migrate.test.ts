@@ -71,12 +71,12 @@ describe("migrate command", () => {
     expect(result.exitCode).toBe(0);
     const stdout = result.stdout.toString();
     expect(stdout).toContain("Migration complete");
-    expect(stdout).toContain("priorities");
 
     const configContent = await fs.readFile(getConfigPath(tmpDir), "utf-8");
     const config = parse(configContent);
-    expect(config.version).toBe(1);
-    expect(config.priorities).toEqual(["low", "medium", "high"]);
+    expect(config.version).toBe(2);
+    expect(config.fields.status).toEqual(["todo", "doing", "done"]);
+    expect(config.fields.priority).toEqual(["low", "medium", "high"]);
     expect(config.defaults.template).toBe("custom template");
   });
 
@@ -89,14 +89,14 @@ describe("migrate command", () => {
 
     const configContent = await fs.readFile(getConfigPath(tmpDir), "utf-8");
     const config = parse(configContent);
-    expect(config.version).toBe(1);
-    expect(config.statuses).toEqual(DEFAULT_CONFIG.statuses);
-    expect(config.priorities).toEqual(DEFAULT_CONFIG.priorities);
+    expect(config.version).toBe(2);
+    expect(config.fields.status).toEqual(DEFAULT_CONFIG.fields.status);
+    expect(config.fields.priority).toEqual(DEFAULT_CONFIG.fields.priority);
     expect(config.defaults.priority).toBe(DEFAULT_CONFIG.defaults.priority);
     expect(config.defaults.template).toBe(DEFAULT_CONFIG.defaults.template);
   });
 
-  test("preserves custom statuses and priorities", async () => {
+  test("preserves custom statuses and priorities via v1→v2", async () => {
     const customConfig = stringify({
       statuses: ["backlog", "active", "shipped"],
       priorities: ["p0", "p1", "p2", "p3"],
@@ -113,9 +113,9 @@ describe("migrate command", () => {
 
     const configContent = await fs.readFile(getConfigPath(tmpDir), "utf-8");
     const config = parse(configContent);
-    expect(config.version).toBe(1);
-    expect(config.statuses).toEqual(["backlog", "active", "shipped"]);
-    expect(config.priorities).toEqual(["p0", "p1", "p2", "p3"]);
+    expect(config.version).toBe(2);
+    expect(config.fields.status).toEqual(["backlog", "active", "shipped"]);
+    expect(config.fields.priority).toEqual(["p0", "p1", "p2", "p3"]);
     expect(config.defaults.priority).toBe("p1");
     expect(config.defaults.template).toBe("my template");
   });
@@ -140,17 +140,19 @@ describe("migrate command", () => {
     expect(config.defaults.template).toBe(customTemplate);
   });
 
-  test("idempotent — v1 config shows nothing to migrate", async () => {
-    const v1Config = stringify({
-      version: 1,
-      statuses: ["todo", "doing", "done"],
-      priorities: ["low", "medium", "high"],
+  test("idempotent — v2 config shows nothing to migrate", async () => {
+    const v2Config = stringify({
+      version: 2,
+      fields: {
+        status: ["todo", "doing", "done"],
+        priority: ["low", "medium", "high"],
+      },
       defaults: {
         priority: "medium",
         template: "template",
       },
     });
-    await initJobdone(tmpDir, v1Config, ["todo", "doing", "done"]);
+    await initJobdone(tmpDir, v2Config, ["todo", "doing", "done"]);
 
     const configBefore = await fs.readFile(getConfigPath(tmpDir), "utf-8");
     const result = runCli(["migrate"], tmpDir);
@@ -161,6 +163,30 @@ describe("migrate command", () => {
 
     const configAfter = await fs.readFile(getConfigPath(tmpDir), "utf-8");
     expect(configAfter).toBe(configBefore);
+  });
+
+  test("v1→v2 migration moves statuses → fields.status and priorities → fields.priority", async () => {
+    const v1Config = stringify({
+      version: 1,
+      statuses: ["todo", "doing", "done"],
+      priorities: ["low", "medium", "high"],
+      defaults: { priority: "medium", template: "t" },
+    });
+    await initJobdone(tmpDir, v1Config, ["todo", "doing", "done"]);
+
+    const result = runCli(["migrate"], tmpDir);
+
+    expect(result.exitCode).toBe(0);
+    const stdout = result.stdout.toString();
+    expect(stdout).toContain("Migration complete");
+
+    const configContent = await fs.readFile(getConfigPath(tmpDir), "utf-8");
+    const config = parse(configContent);
+    expect(config.version).toBe(2);
+    expect(config.fields.status).toEqual(["todo", "doing", "done"]);
+    expect(config.fields.priority).toEqual(["low", "medium", "high"]);
+    expect(config.statuses).toBeUndefined();
+    expect(config.priorities).toBeUndefined();
   });
 
   test("creates missing status folders", async () => {
@@ -192,45 +218,59 @@ describe("migrate command", () => {
     expect(result.exitCode).toBe(0);
     const stdout = result.stdout.toString();
     expect(stdout).toContain("Migration complete");
-    expect(stdout).toContain("statuses");
-    expect(stdout).toContain("priorities");
     expect(stdout).toContain("version");
   });
 });
 
 describe("migrateConfig unit tests", () => {
-  test("migrates empty object", () => {
+  test("migrates empty object to v2", () => {
     const { config, changes } = migrateConfig({});
 
-    expect(config.version).toBe(1);
-    expect(config.statuses).toEqual(DEFAULT_CONFIG.statuses);
-    expect(config.priorities).toEqual(DEFAULT_CONFIG.priorities);
-    expect((config.defaults as Record<string, unknown>).priority).toBe(
-      DEFAULT_CONFIG.defaults.priority,
-    );
+    expect(config.version).toBe(2);
+    const fields = config.fields as Record<string, string[]>;
+    expect(fields.status).toEqual(DEFAULT_CONFIG.fields.status);
+    expect(fields.priority).toEqual(DEFAULT_CONFIG.fields.priority);
     expect(changes.length).toBeGreaterThan(0);
   });
 
-  test("migrates partial config", () => {
+  test("migrates v0 partial config, preserves statuses", () => {
     const { config, changes } = migrateConfig({
       statuses: ["a", "b"],
     });
 
-    expect(config.version).toBe(1);
-    expect(config.statuses).toEqual(["a", "b"]);
-    expect(config.priorities).toEqual(DEFAULT_CONFIG.priorities);
+    expect(config.version).toBe(2);
+    const fields = config.fields as Record<string, string[]>;
+    expect(fields.status).toEqual(["a", "b"]);
+    expect(fields.priority).toEqual(DEFAULT_CONFIG.fields.priority);
     expect(changes.length).toBeGreaterThan(0);
   });
 
   test("returns no changes for current version", () => {
     const { config, changes } = migrateConfig({
       version: CURRENT_CONFIG_VERSION,
-      statuses: ["x"],
-      priorities: ["y"],
+      fields: { status: ["x"], priority: ["y"] },
       defaults: { priority: "y", template: "t" },
     });
 
     expect(changes).toEqual([]);
     expect(config.version).toBe(CURRENT_CONFIG_VERSION);
+  });
+
+  test("v1→v2 migration moves statuses/priorities into fields", () => {
+    const { config, changes } = migrateConfig({
+      version: 1,
+      statuses: ["todo", "doing", "done"],
+      priorities: ["low", "medium", "high"],
+      defaults: { priority: "medium", template: "t" },
+    });
+
+    expect(config.version).toBe(2);
+    const fields = config.fields as Record<string, string[]>;
+    expect(fields.status).toEqual(["todo", "doing", "done"]);
+    expect(fields.priority).toEqual(["low", "medium", "high"]);
+    expect((config as Record<string, unknown>).statuses).toBeUndefined();
+    expect((config as Record<string, unknown>).priorities).toBeUndefined();
+    expect(changes.some((c) => c.includes("fields.status"))).toBe(true);
+    expect(changes.some((c) => c.includes("fields.priority"))).toBe(true);
   });
 });

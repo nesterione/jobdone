@@ -35,7 +35,7 @@ export function registerGetCommand(program: Command): void {
       }
 
       const config = await loadConfig(cwd);
-      const task = await findTaskById(cwd, config.statuses, id);
+      const task = await findTaskById(cwd, config.fields.status ?? [], id);
 
       if (!task) {
         console.error(pc.red(`Error: Task ${id} not found.`));

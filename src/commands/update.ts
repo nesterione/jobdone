@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import type { Command } from "commander";
 import pc from "picocolors";
-import { loadConfig } from "../lib/config.js";
+import { loadConfig, validateField } from "../lib/config.js";
 import { getJobdonePath } from "../lib/paths.js";
 import { findTaskById, updateTask } from "../lib/task.js";
 
@@ -11,7 +11,7 @@ export function registerUpdateCommand(program: Command): void {
     .description("Update a task's fields or body")
     .argument("<id>", "Task ID (numeric)")
     .option("-s, --set <kv...>", "Set front matter fields (key=value)")
-    .option("--body <text>", "Replace markdown body")
+    .option("-b, --body <text>", "Replace markdown body")
     .action(async (idStr: string, opts: { set?: string[]; body?: string }) => {
       const id = Number.parseInt(idStr, 10);
       if (Number.isNaN(id) || id <= 0) {
@@ -45,9 +45,10 @@ export function registerUpdateCommand(program: Command): void {
       }
 
       const config = await loadConfig(cwd);
+      const statuses = config.fields.status ?? [];
 
       // Check task exists first
-      const task = await findTaskById(cwd, config.statuses, id);
+      const task = await findTaskById(cwd, statuses, id);
       if (!task) {
         console.error(pc.red(`Error: Task ${id} not found.`));
         process.exitCode = 1;
@@ -72,22 +73,18 @@ export function registerUpdateCommand(program: Command): void {
         }
       }
 
-      // Validate priority if provided
-      if (
-        frontMatter.priority &&
-        !config.priorities.includes(frontMatter.priority as string)
-      ) {
-        console.error(
-          pc.red(
-            `Error: Invalid priority "${frontMatter.priority}". Must be one of: ${config.priorities.join(", ")}`,
-          ),
-        );
-        process.exitCode = 1;
-        return;
+      // Validate --set fields against config
+      for (const [key, value] of Object.entries(frontMatter)) {
+        const err = validateField(key, value as string, config);
+        if (err) {
+          console.error(pc.red(`Error: ${err}`));
+          process.exitCode = 1;
+          return;
+        }
       }
 
       try {
-        const result = await updateTask(cwd, config.statuses, id, {
+        const result = await updateTask(cwd, statuses, id, {
           frontMatter:
             Object.keys(frontMatter).length > 0 ? frontMatter : undefined,
           body: opts.body,

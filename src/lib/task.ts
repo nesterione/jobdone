@@ -260,6 +260,8 @@ export async function createTask(options: {
   cwd: string;
   title: string;
   priority?: string;
+  body?: string;
+  extraFields?: Record<string, unknown>;
   config: JobdoneConfig;
 }): Promise<CreateTaskResult> {
   const { cwd, title, config } = options;
@@ -269,7 +271,7 @@ export async function createTask(options: {
     throw new Error("Title produces an empty slug.");
   }
 
-  const nextIndex = await getNextTaskIndex(cwd, config.statuses);
+  const nextIndex = await getNextTaskIndex(cwd, config.fields.status ?? []);
   const filename = `${nextIndex}-${slug}.md`;
 
   const now = new Date();
@@ -280,12 +282,24 @@ export async function createTask(options: {
 
   const priority = options.priority ?? config.defaults.priority;
 
-  const content = config.defaults.template
+  const rendered = config.defaults.template
     .replace("{{ title }}", title)
     .replace("{{ priority }}", priority)
     .replace("{{ date }}", dateStr);
 
-  const initialStatus = config.statuses[0];
+  let content: string;
+  if (options.body !== undefined || options.extraFields) {
+    const { data: fmData, body: templateBody } = parseFrontMatter(rendered);
+    Object.assign(fmData, options.extraFields);
+    const yamlStr = stringifyYaml(fmData).trimEnd();
+    const bodyContent =
+      options.body !== undefined ? options.body : templateBody;
+    content = `---\n${yamlStr}\n---\n${bodyContent}`;
+  } else {
+    content = rendered;
+  }
+
+  const initialStatus = (config.fields.status ?? [])[0];
   const statusDir = path.join(getTasksPath(cwd), initialStatus);
   await fs.mkdir(statusDir, { recursive: true });
 

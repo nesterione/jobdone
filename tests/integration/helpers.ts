@@ -18,7 +18,7 @@ export function runCli(args: string[], cwd: string) {
 export async function createInitializedWorkspace(): Promise<string> {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "jobdone-int-"));
   await Promise.all(
-    DEFAULT_CONFIG.statuses.map((status) =>
+    DEFAULT_CONFIG.fields.status.map((status) =>
       fs.mkdir(path.join(getTasksPath(tmpDir), status), { recursive: true }),
     ),
   );

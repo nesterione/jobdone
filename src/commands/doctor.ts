@@ -45,7 +45,7 @@ export function registerDoctorCommand(program: Command): void {
       // Collect all task entries
       const entries: TaskEntry[] = [];
 
-      for (const status of config.statuses) {
+      for (const status of config.fields.status ?? []) {
         const dirPath = path.join(tasksPath, status);
         let files: string[];
         try {

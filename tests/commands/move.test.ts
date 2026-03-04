@@ -13,7 +13,7 @@ let tmpDir: string;
 beforeEach(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "jobdone-move-test-"));
   const tasksPath = getTasksPath(tmpDir);
-  for (const status of DEFAULT_CONFIG.statuses) {
+  for (const status of DEFAULT_CONFIG.fields.status) {
     await fs.mkdir(path.join(tasksPath, status), { recursive: true });
   }
   const configPath = getConfigPath(tmpDir);

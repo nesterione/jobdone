@@ -63,7 +63,7 @@ export async function startServer(
   const { cwd, port } = options;
   const config = await loadConfig(cwd);
   const watcher = new TaskWatcher();
-  watcher.start(cwd, config.statuses);
+  watcher.start(cwd, config.fields.status ?? []);
 
   const handler = createRouteHandler(cwd, config, watcher);
 

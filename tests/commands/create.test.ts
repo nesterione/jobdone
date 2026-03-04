@@ -19,7 +19,7 @@ beforeEach(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "jobdone-create-test-"));
   // Initialize .jobdone structure
   const tasksPath = getTasksPath(tmpDir);
-  for (const status of DEFAULT_CONFIG.statuses) {
+  for (const status of DEFAULT_CONFIG.fields.status) {
     await fs.mkdir(path.join(tasksPath, status), { recursive: true });
   }
   const configPath = getConfigPath(tmpDir);
@@ -126,5 +126,84 @@ describe("create command", () => {
     const result = runCli(["create"], tmpDir);
 
     expect(result.exitCode).not.toBe(0);
+  });
+
+  test("--body sets body content below front matter", async () => {
+    runCli(["create", "Body task", "--body", "Do the thing"], tmpDir);
+
+    const filePath = path.join(
+      getTasksPath(tmpDir),
+      "todo",
+      "1-body-task.md",
+    );
+    const content = await fs.readFile(filePath, "utf-8");
+    const { body } = parseFrontMatter(content);
+
+    expect(body).toBe("Do the thing");
+  });
+
+  test("--set adds custom front matter field", async () => {
+    runCli(["create", "Ticket task", "--set", "ticket=ABC-123"], tmpDir);
+
+    const filePath = path.join(
+      getTasksPath(tmpDir),
+      "todo",
+      "1-ticket-task.md",
+    );
+    const content = await fs.readFile(filePath, "utf-8");
+    const { data } = parseFrontMatter(content);
+
+    expect(data.ticket).toBe("ABC-123");
+  });
+
+  test("--set priority overrides --priority flag", async () => {
+    runCli(
+      ["create", "Override task", "--priority", "low", "--set", "priority=high"],
+      tmpDir,
+    );
+
+    const filePath = path.join(
+      getTasksPath(tmpDir),
+      "todo",
+      "1-override-task.md",
+    );
+    const content = await fs.readFile(filePath, "utf-8");
+    const { data } = parseFrontMatter(content);
+
+    expect(data.priority).toBe("high");
+  });
+
+  test("--priority rejects invalid value", () => {
+    const result = runCli(
+      ["create", "Bad priority", "--priority", "urgent"],
+      tmpDir,
+    );
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr.toString()).toContain("Invalid priority");
+  });
+
+  test("--body and --set can be combined", async () => {
+    runCli(
+      [
+        "create",
+        "Combined task",
+        "--body",
+        "Do the thing",
+        "--set",
+        "ticket=ABC-123",
+      ],
+      tmpDir,
+    );
+
+    const filePath = path.join(
+      getTasksPath(tmpDir),
+      "todo",
+      "1-combined-task.md",
+    );
+    const content = await fs.readFile(filePath, "utf-8");
+    const { data, body } = parseFrontMatter(content);
+
+    expect(data.ticket).toBe("ABC-123");
+    expect(body).toBe("Do the thing");
   });
 });

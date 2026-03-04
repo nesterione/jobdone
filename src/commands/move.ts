@@ -30,10 +30,11 @@ export function registerMoveCommand(program: Command): void {
 
       const config = await loadConfig(cwd);
 
-      if (!config.statuses.includes(targetStatus)) {
+      const statuses = config.fields.status ?? [];
+      if (!statuses.includes(targetStatus)) {
         console.error(
           pc.red(
-            `Error: Invalid status "${targetStatus}". Valid statuses: ${config.statuses.join(", ")}`,
+            `Error: Invalid status "${targetStatus}". Valid statuses: ${statuses.join(", ")}`,
           ),
         );
         process.exitCode = 1;
@@ -41,9 +42,9 @@ export function registerMoveCommand(program: Command): void {
       }
 
       // Find which status the task is currently in
-      const grouped = await readAllTasks(cwd, config.statuses);
+      const grouped = await readAllTasks(cwd, statuses);
       let currentStatus: string | null = null;
-      for (const status of config.statuses) {
+      for (const status of statuses) {
         if (grouped[status]?.some((t) => t.filename === filename)) {
           currentStatus = status;
           break;

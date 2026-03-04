@@ -64,16 +64,17 @@ export function registerListCommand(program: Command): void {
       }
 
       const config = await loadConfig(cwd);
-      const grouped = await readAllTasks(cwd, config.statuses);
+      const statuses = config.fields.status ?? [];
+      const grouped = await readAllTasks(cwd, statuses);
 
       if (opts.json) {
-        const output = toJsonOutput(config.statuses, grouped);
+        const output = toJsonOutput(statuses, grouped);
         console.log(JSON.stringify(output, null, 2));
         return;
       }
 
       // Human-readable output
-      for (const status of config.statuses) {
+      for (const status of statuses) {
         const tasks = grouped[status] ?? [];
         console.log(pc.bold(`\n${status.toUpperCase()} (${tasks.length})`));
         if (tasks.length === 0) {

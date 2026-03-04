@@ -36,7 +36,7 @@ describe("init command", () => {
     const stat = await fs.stat(jobdonePath);
     expect(stat.isDirectory()).toBe(true);
 
-    for (const status of DEFAULT_CONFIG.statuses) {
+    for (const status of DEFAULT_CONFIG.fields.status) {
       const statusDir = path.join(getTasksPath(tmpDir), status);
       const statusStat = await fs.stat(statusDir);
       expect(statusStat.isDirectory()).toBe(true);
@@ -50,7 +50,8 @@ describe("init command", () => {
     const content = await fs.readFile(configPath, "utf-8");
     const parsed = parse(content);
 
-    expect(parsed.statuses).toEqual(DEFAULT_CONFIG.statuses);
+    expect(parsed.fields.status).toEqual(DEFAULT_CONFIG.fields.status);
+    expect(parsed.fields.priority).toEqual(DEFAULT_CONFIG.fields.priority);
     expect(parsed.defaults.priority).toBe(DEFAULT_CONFIG.defaults.priority);
     expect(parsed.defaults.template).toBe(DEFAULT_CONFIG.defaults.template);
   });
@@ -71,7 +72,8 @@ describe("config", () => {
   test("serializeConfig produces valid YAML", () => {
     const yaml = serializeConfig(DEFAULT_CONFIG);
     const parsed = parse(yaml);
-    expect(parsed.statuses).toEqual(DEFAULT_CONFIG.statuses);
+    expect(parsed.fields.status).toEqual(DEFAULT_CONFIG.fields.status);
+    expect(parsed.fields.priority).toEqual(DEFAULT_CONFIG.fields.priority);
     expect(parsed.defaults.priority).toBe("medium");
   });
 });

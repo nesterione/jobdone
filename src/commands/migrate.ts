@@ -54,7 +54,8 @@ export function registerMigrateCommand(program: Command): void {
         "utf-8",
       );
 
-      const statuses = (config.statuses ?? []) as string[];
+      const fields = (config.fields ?? {}) as Record<string, unknown>;
+      const statuses = (fields.status ?? []) as string[];
       const tasksPath = getTasksPath(cwd);
       const createdFolders: string[] = [];
 

@@ -15,8 +15,8 @@ export function createRouteHandler(
   watcher: TaskWatcher,
 ): (req: Request) => Response | Promise<Response> {
   const html = generateHtml(
-    config.statuses,
-    config.priorities,
+    config.fields.status ?? [],
+    config.fields.priority ?? [],
     config.defaults.priority,
   );
 
@@ -30,7 +30,7 @@ export function createRouteHandler(
     }
 
     if (req.method === "GET" && url.pathname === "/api/tasks") {
-      const tasks = await readAllTasks(cwd, config.statuses);
+      const tasks = await readAllTasks(cwd, config.fields.status ?? []);
       return Response.json(tasks);
     }
 
@@ -44,10 +44,13 @@ export function createRouteHandler(
         return Response.json({ error: "Title is required" }, { status: 400 });
       }
 
-      if (body.priority && !config.priorities.includes(body.priority)) {
+      if (
+        body.priority &&
+        !(config.fields.priority ?? []).includes(body.priority)
+      ) {
         return Response.json(
           {
-            error: `Invalid priority. Must be one of: ${config.priorities.join(", ")}`,
+            error: `Invalid priority. Must be one of: ${(config.fields.priority ?? []).join(", ")}`,
           },
           { status: 400 },
         );
@@ -79,8 +82,8 @@ export function createRouteHandler(
         return Response.json({ error: "Missing fields" }, { status: 400 });
       }
       if (
-        !config.statuses.includes(body.from) ||
-        !config.statuses.includes(body.to)
+        !(config.fields.status ?? []).includes(body.from) ||
+        !(config.fields.status ?? []).includes(body.to)
       ) {
         return Response.json({ error: "Invalid status" }, { status: 400 });
       }
@@ -98,7 +101,7 @@ export function createRouteHandler(
     const taskByIdMatch = url.pathname.match(/^\/api\/tasks\/(\d+)$/);
     if (req.method === "GET" && taskByIdMatch) {
       const id = Number.parseInt(taskByIdMatch[1], 10);
-      const task = await findTaskById(cwd, config.statuses, id);
+      const task = await findTaskById(cwd, config.fields.status ?? [], id);
       if (!task) {
         return Response.json({ error: "Task not found" }, { status: 404 });
       }
@@ -114,11 +117,13 @@ export function createRouteHandler(
 
       if (
         body.frontMatter?.priority &&
-        !config.priorities.includes(body.frontMatter.priority as string)
+        !(config.fields.priority ?? []).includes(
+          body.frontMatter.priority as string,
+        )
       ) {
         return Response.json(
           {
-            error: `Invalid priority. Must be one of: ${config.priorities.join(", ")}`,
+            error: `Invalid priority. Must be one of: ${(config.fields.priority ?? []).join(", ")}`,
           },
           { status: 400 },
         );
@@ -135,7 +140,7 @@ export function createRouteHandler(
       }
 
       try {
-        const result = await updateTask(cwd, config.statuses, id, {
+        const result = await updateTask(cwd, config.fields.status ?? [], id, {
           frontMatter: body.frontMatter,
           body: body.body,
         });

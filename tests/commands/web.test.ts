@@ -12,7 +12,7 @@ let tmpDir: string;
 beforeEach(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "jobdone-web-test-"));
   // Initialize .jobdone structure
-  for (const status of DEFAULT_CONFIG.statuses) {
+  for (const status of DEFAULT_CONFIG.fields.status) {
     await fs.mkdir(path.join(tmpDir, ".jobdone", "tasks", status), {
       recursive: true,
     });

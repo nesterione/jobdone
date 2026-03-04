@@ -27,7 +27,7 @@ export function registerInitCommand(program: Command): void {
       }
 
       const tasksPath = getTasksPath(cwd);
-      for (const status of DEFAULT_CONFIG.statuses) {
+      for (const status of DEFAULT_CONFIG.fields.status) {
         await fs.mkdir(path.join(tasksPath, status), { recursive: true });
       }
 

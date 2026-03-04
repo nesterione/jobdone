@@ -42,9 +42,15 @@ The raw idea is: `$ARGUMENTS`
 
 3. **Output the ready-to-run CLI command** to create the task:
 
-   ```
-   jobdone create "<title>" -p <priority>
-   ```
+   - If the task has no body content or custom fields:
+     ```
+     jobdone create "<title>" -p <priority>
+     ```
+   - If the task has a description body or custom front matter fields (e.g. ticket, assignee, sprint):
+     ```
+     jobdone create "<title>" -p <priority> --body "<description>" --set <key>=<value>
+     ```
+   Use `--set` once per field. Both `--body` and `--set` are optional and can be used independently or combined.
 
 4. **Print this tip** on a new line:
 
