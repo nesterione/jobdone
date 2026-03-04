@@ -1,7 +1,3 @@
-statuses:
-  - backlog
-  - todo
-  - done
 defaults:
   priority: medium
   template: |
@@ -17,8 +13,13 @@ defaults:
     ## Acceptance Criteria
 
     - [ ] ...
-priorities:
-  - low
-  - medium
-  - high
-version: 1
+version: 2
+fields:
+  status:
+    - backlog
+    - todo
+    - done
+  priority:
+    - low
+    - medium
+    - high
