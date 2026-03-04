@@ -110,7 +110,6 @@ describe("corrupt workspace recovery", () => {
     runCli(["create", "Beta"], tmpDir);
 
     // Inject a duplicate of ID 1 in done, and a no-prefix file
-    await new Promise((r) => setTimeout(r, 10));
     await writeTask(tmpDir, "done", "1-alpha-duplicate.md", "---\ntitle: Alpha Dup\n---\n");
     await writeTask(tmpDir, "todo", "noprefix.md", "---\ntitle: No Prefix\n---\n");
 

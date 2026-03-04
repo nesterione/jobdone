@@ -1,7 +1,4 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { getTasksPath } from "../../src/lib/paths.js";
 import {
   cleanupWorkspace,
   createInitializedWorkspace,

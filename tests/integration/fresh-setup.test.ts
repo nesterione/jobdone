@@ -76,10 +76,10 @@ describe("fresh workspace setup", () => {
     expect(task.priority).toBe("medium");
   });
 
-  test("all commands fail consistently with .jobdone/ not found message when workspace is absent", () => {
+  test("all commands fail consistently with .jobdone/ not found message when workspace is absent", async () => {
     const blankDir = path.join(tmpDir, "blank");
     // Create the directory but do NOT init
-    fs.mkdir(blankDir, { recursive: true });
+    await fs.mkdir(blankDir, { recursive: true });
 
     const commands: [string, string[]][] = [
       ["create", ["create", "Some task"]],

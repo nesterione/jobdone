@@ -17,9 +17,11 @@ export function runCli(args: string[], cwd: string) {
 // Programmatic setup (faster/deterministic) — init CLI is tested in fresh-setup.test.ts
 export async function createInitializedWorkspace(): Promise<string> {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "jobdone-int-"));
-  for (const status of DEFAULT_CONFIG.statuses) {
-    await fs.mkdir(path.join(getTasksPath(tmpDir), status), { recursive: true });
-  }
+  await Promise.all(
+    DEFAULT_CONFIG.statuses.map((status) =>
+      fs.mkdir(path.join(getTasksPath(tmpDir), status), { recursive: true }),
+    ),
+  );
   await fs.writeFile(getConfigPath(tmpDir), serializeConfig(DEFAULT_CONFIG), "utf-8");
   return tmpDir;
 }
