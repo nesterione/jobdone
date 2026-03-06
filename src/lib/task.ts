@@ -11,6 +11,7 @@ export interface Task {
   priority: string;
   created: string;
   description: string;
+  position?: number;
   raw: string;
 }
 
@@ -107,6 +108,7 @@ async function readTaskFile(
     priority: (data.priority as string) || "medium",
     created: (data.created as string) || "",
     description: extractDescription(body),
+    position: data.position as number | undefined,
     raw,
   };
 }
@@ -134,6 +136,13 @@ export async function readAllTasks(
       const task = await readTaskFile(filePath, filename, status);
       result[status].push(task);
     }
+
+    result[status].sort((a, b) => {
+      const ap = a.position ?? Number.POSITIVE_INFINITY;
+      const bp = b.position ?? Number.POSITIVE_INFINITY;
+      if (ap !== bp) return ap - bp;
+      return a.filename.localeCompare(b.filename);
+    });
   }
 
   return result;
@@ -151,6 +160,66 @@ export async function moveTask(
 
   await fs.mkdir(path.join(tasksPath, to), { recursive: true });
   await fs.rename(srcPath, destPath);
+}
+
+async function writePositionToFile(
+  filePath: string,
+  position: number,
+): Promise<void> {
+  const raw = await fs.readFile(filePath, "utf-8");
+  const { data, body } = parseFrontMatter(raw);
+  data.position = position;
+  const yamlStr = stringifyYaml(data).trimEnd();
+  await fs.writeFile(filePath, `---\n${yamlStr}\n---\n${body}`, "utf-8");
+}
+
+export async function reorderTasksInColumn(
+  cwd: string,
+  status: string,
+  statuses: string[],
+  filename: string,
+  newIndex: number,
+): Promise<void> {
+  const tasksPath = getTasksPath(cwd);
+  const dirPath = path.join(tasksPath, status);
+
+  if (!statuses.includes(status)) {
+    throw new Error(`Invalid status: ${status}`);
+  }
+
+  let entries: string[];
+  try {
+    entries = await fs.readdir(dirPath);
+  } catch {
+    throw new Error(`Status directory not found: ${status}`);
+  }
+
+  const mdFiles = entries.filter((f) => f.endsWith(".md"));
+  const tasks: Task[] = [];
+  for (const f of mdFiles) {
+    tasks.push(await readTaskFile(path.join(dirPath, f), f, status));
+  }
+
+  tasks.sort((a, b) => {
+    const ap = a.position ?? Number.POSITIVE_INFINITY;
+    const bp = b.position ?? Number.POSITIVE_INFINITY;
+    if (ap !== bp) return ap - bp;
+    return a.filename.localeCompare(b.filename);
+  });
+
+  const currentIdx = tasks.findIndex((t) => t.filename === filename);
+  if (currentIdx === -1) {
+    throw new Error(`Task not found in column: ${filename}`);
+  }
+
+  const [dragged] = tasks.splice(currentIdx, 1);
+  tasks.splice(Math.max(0, Math.min(newIndex, tasks.length)), 0, dragged);
+
+  for (let i = 0; i < tasks.length; i++) {
+    if (tasks[i].position !== i) {
+      await writePositionToFile(path.join(dirPath, tasks[i].filename), i);
+    }
+  }
 }
 
 export interface TaskDetail {
@@ -302,6 +371,29 @@ export async function createTask(options: {
   const initialStatus = (config.fields.status ?? [])[0];
   const statusDir = path.join(getTasksPath(cwd), initialStatus);
   await fs.mkdir(statusDir, { recursive: true });
+
+  // Shift existing positioned tasks down to make room at position 0
+  let existingEntries: string[] = [];
+  try {
+    existingEntries = await fs.readdir(statusDir);
+  } catch {
+    // directory may not exist yet
+  }
+  for (const f of existingEntries) {
+    if (!f.endsWith(".md")) continue;
+    const fp = path.join(statusDir, f);
+    const raw = await fs.readFile(fp, "utf-8");
+    const { data } = parseFrontMatter(raw);
+    if (typeof data.position === "number") {
+      await writePositionToFile(fp, data.position + 1);
+    }
+  }
+
+  // Add position: 0 to the new task's frontmatter
+  const { data: fmData2, body: body2 } = parseFrontMatter(content);
+  fmData2.position = 0;
+  const yamlStr2 = stringifyYaml(fmData2).trimEnd();
+  content = `---\n${yamlStr2}\n---\n${body2}`;
 
   const filePath = path.join(statusDir, filename);
   await fs.writeFile(filePath, content, "utf-8");

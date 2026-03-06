@@ -13,7 +13,7 @@ Drag-and-drop within a column currently has no backing storage — same-column r
 - [ ] `jobdone create` assigns `position: 0` to the new task and increments `position` by 1 on all existing tasks in the same column
 - [ ] Web UI: same-column drag-and-drop is no longer ignored; on drop it calls `POST /api/tasks/reorder` with `{ filename, status, newIndex }`
 - [ ] `POST /api/tasks/reorder` reads the current ordered task list for the column, applies the move, then writes updated `position` values to every affected file
-- [ ] macOS: within-column drops trigger position updates using the same underlying mechanism (CLI `update` calls)
+- [-] macOS: within-column drops trigger position updates using the same underlying mechanism (CLI `update` calls)
 - [ ] `jobdone get <id>` shows the `position` field when set
 
 ## Out of Scope

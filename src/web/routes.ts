@@ -4,6 +4,7 @@ import {
   findTaskById,
   moveTask,
   readAllTasks,
+  reorderTasksInColumn,
   updateTask,
 } from "../lib/task.js";
 import { generateHtml } from "./html.js";
@@ -89,6 +90,35 @@ export function createRouteHandler(
       }
       try {
         await moveTask(cwd, body.filename, body.from, body.to);
+        return Response.json({ ok: true });
+      } catch (err) {
+        return Response.json(
+          { error: (err as Error).message },
+          { status: 500 },
+        );
+      }
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/tasks/reorder") {
+      const body = (await req.json()) as {
+        filename: string;
+        status: string;
+        newIndex: number;
+      };
+      if (!body.filename || !body.status || body.newIndex === undefined) {
+        return Response.json({ error: "Missing fields" }, { status: 400 });
+      }
+      if (!(config.fields.status ?? []).includes(body.status)) {
+        return Response.json({ error: "Invalid status" }, { status: 400 });
+      }
+      try {
+        await reorderTasksInColumn(
+          cwd,
+          body.status,
+          config.fields.status ?? [],
+          body.filename,
+          body.newIndex,
+        );
         return Response.json({ ok: true });
       } catch (err) {
         return Response.json(

@@ -291,12 +291,19 @@ function initSortable() {
         const filename = evt.item.dataset.filename;
         const from = evt.from.dataset.status;
         const to = evt.to.dataset.status;
-        if (from === to) return;
-        await fetch('/api/tasks/move', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename, from, to })
-        });
+        if (from !== to) {
+          await fetch('/api/tasks/move', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename, from, to })
+          });
+        } else {
+          await fetch('/api/tasks/reorder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename, status: to, newIndex: evt.newIndex })
+          });
+        }
       }
     });
   });
