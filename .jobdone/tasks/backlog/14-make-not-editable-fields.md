@@ -2,6 +2,7 @@
 priority: medium
 created: 18.02.2026
 title: 14 Make Not Editable Fields
+position: 6
 ---
 ## Description
 

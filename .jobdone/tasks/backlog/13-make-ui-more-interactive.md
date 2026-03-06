@@ -2,6 +2,7 @@
 priority: medium
 created: 18.02.2026
 title: 13 Make ui more interactive
+position: 4
 ---
 ## Description
 

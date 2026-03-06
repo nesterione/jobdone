@@ -1,6 +1,6 @@
 {
   "name": "jobdone",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Claude Code skills for jobdone task management. Refine and improve task files.",
   "author": { "name": "Ihar Nestsiarenia" },
   "repository": "https://github.com/nesterione/jobdone",
