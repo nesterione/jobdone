@@ -113,10 +113,14 @@ A sample task for testing.
     // Test GET /api/tasks
     const tasksRes = await fetch(`http://localhost:${port}/api/tasks`);
     expect(tasksRes.status).toBe(200);
-    const tasks = await tasksRes.json();
-    expect(tasks.todo).toHaveLength(1);
-    expect(tasks.todo[0].title).toBe("Sample Task");
-    expect(tasks.todo[0].priority).toBe("high");
+    const tasks = (await tasksRes.json()) as {
+      statuses: string[];
+      tasks: Record<string, { title: string; priority: string }[]>;
+    };
+    expect(tasks.statuses).toEqual(["todo", "doing", "done"]);
+    expect(tasks.tasks.todo).toHaveLength(1);
+    expect(tasks.tasks.todo[0].title).toBe("Sample Task");
+    expect(tasks.tasks.todo[0].priority).toBe("high");
 
     // Test POST /api/tasks/move
     const moveRes = await fetch(`http://localhost:${port}/api/tasks/move`, {

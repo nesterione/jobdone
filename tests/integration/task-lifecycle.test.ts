@@ -74,6 +74,43 @@ describe("task lifecycle", () => {
     expect(finalList.tasks.doing).toHaveLength(0);
   });
 
+  test("create --json → update --json → move --json full lifecycle", () => {
+    // Create with --json
+    const createResult = runCli(
+      ["create", "Json lifecycle", "--priority", "high", "--json"],
+      tmpDir,
+    );
+    expect(createResult.exitCode).toBe(0);
+    const created = JSON.parse(createResult.stdout.toString());
+    expect(created.id).toBe(1);
+    expect(created.filename).toBe("1-json-lifecycle.md");
+    expect(created.status).toBe("todo");
+    expect(created.priority).toBe("high");
+
+    // Update with --json
+    const updateResult = runCli(
+      ["update", "1", "--set", "priority=low", "--json"],
+      tmpDir,
+    );
+    expect(updateResult.exitCode).toBe(0);
+    const updated = JSON.parse(updateResult.stdout.toString());
+    expect(updated.id).toBe(1);
+    expect(updated.filename).toBe("1-json-lifecycle.md");
+    expect(updated.status).toBe("todo");
+
+    // Move with --json
+    const moveResult = runCli(
+      ["move", "1-json-lifecycle.md", "done", "--json"],
+      tmpDir,
+    );
+    expect(moveResult.exitCode).toBe(0);
+    const moved = JSON.parse(moveResult.stdout.toString());
+    expect(moved.ok).toBe(true);
+    expect(moved.filename).toBe("1-json-lifecycle.md");
+    expect(moved.from).toBe("todo");
+    expect(moved.to).toBe("done");
+  });
+
   test("body content is preserved through move", async () => {
     // Create then update body
     runCli(["create", "Body task"], tmpDir);

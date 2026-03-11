@@ -5,6 +5,11 @@ import { loadConfig, validateField } from "../lib/config.js";
 import { getJobdonePath } from "../lib/paths.js";
 import { createTask } from "../lib/task.js";
 
+function jsonError(message: string): void {
+  console.error(JSON.stringify({ error: message }));
+  process.exitCode = 1;
+}
+
 export function registerCreateCommand(program: Command): void {
   program
     .command("create")
@@ -13,10 +18,16 @@ export function registerCreateCommand(program: Command): void {
     .option("-p, --priority <level>", "Priority level")
     .option("-b, --body <text>", "Body content below front matter")
     .option("-s, --set <kv...>", "Set front matter field (repeatable)")
+    .option("--json", "Output as JSON")
     .action(
       async (
         title: string,
-        opts: { priority?: string; body?: string; set?: string[] },
+        opts: {
+          priority?: string;
+          body?: string;
+          set?: string[];
+          json?: boolean;
+        },
       ) => {
         const cwd = process.cwd();
         const jobdonePath = getJobdonePath(cwd);
@@ -27,10 +38,13 @@ export function registerCreateCommand(program: Command): void {
           .catch(() => false);
 
         if (!exists) {
-          console.error(
-            pc.red("Error: .jobdone/ not found. Run `jobdone init` first."),
-          );
-          process.exitCode = 1;
+          const msg = ".jobdone/ not found. Run `jobdone init` first.";
+          if (opts.json) {
+            jsonError(msg);
+          } else {
+            console.error(pc.red(`Error: ${msg}`));
+            process.exitCode = 1;
+          }
           return;
         }
 
@@ -40,8 +54,12 @@ export function registerCreateCommand(program: Command): void {
         const resolvedPriority = opts.priority ?? config.defaults.priority;
         const priorityErr = validateField("priority", resolvedPriority, config);
         if (priorityErr) {
-          console.error(pc.red(`Error: ${priorityErr}`));
-          process.exitCode = 1;
+          if (opts.json) {
+            jsonError(priorityErr);
+          } else {
+            console.error(pc.red(`Error: ${priorityErr}`));
+            process.exitCode = 1;
+          }
           return;
         }
 
@@ -49,10 +67,13 @@ export function registerCreateCommand(program: Command): void {
         for (const kv of opts.set ?? []) {
           const eqIndex = kv.indexOf("=");
           if (eqIndex === -1) {
-            console.error(
-              pc.red(`Error: Invalid format "${kv}". Use key=value.`),
-            );
-            process.exitCode = 1;
+            const msg = `Invalid format "${kv}". Use key=value.`;
+            if (opts.json) {
+              jsonError(msg);
+            } else {
+              console.error(pc.red(`Error: ${msg}`));
+              process.exitCode = 1;
+            }
             return;
           }
           frontMatter[kv.slice(0, eqIndex)] = kv.slice(eqIndex + 1);
@@ -62,8 +83,12 @@ export function registerCreateCommand(program: Command): void {
         for (const [key, value] of Object.entries(frontMatter)) {
           const err = validateField(key, value as string, config);
           if (err) {
-            console.error(pc.red(`Error: ${err}`));
-            process.exitCode = 1;
+            if (opts.json) {
+              jsonError(err);
+            } else {
+              console.error(pc.red(`Error: ${err}`));
+              process.exitCode = 1;
+            }
             return;
           }
         }
@@ -78,10 +103,30 @@ export function registerCreateCommand(program: Command): void {
               Object.keys(frontMatter).length > 0 ? frontMatter : undefined,
             config,
           });
-          console.log(pc.green(`✓ Created task: ${result.relativePath}`));
+          if (opts.json) {
+            console.log(
+              JSON.stringify(
+                {
+                  id: result.id,
+                  filename: result.filename,
+                  status: result.status,
+                  priority: result.priority,
+                },
+                null,
+                2,
+              ),
+            );
+          } else {
+            console.log(pc.green(`✓ Created task: ${result.relativePath}`));
+          }
         } catch (err) {
-          console.error(pc.red(`Error: ${(err as Error).message}`));
-          process.exitCode = 1;
+          const msg = (err as Error).message;
+          if (opts.json) {
+            jsonError(msg);
+          } else {
+            console.error(pc.red(`Error: ${msg}`));
+            process.exitCode = 1;
+          }
         }
       },
     );

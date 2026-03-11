@@ -258,13 +258,14 @@ function renderTasks(grouped) {
     const list = document.querySelector('.task-list[data-status="' + status + '"]');
     if (!list) continue;
     const tasks = grouped[status] || [];
-    list.innerHTML = tasks.map(t =>
-      '<div class="task-card" data-filename="' + esc(t.filename) + '" data-priority="' + esc(t.priority) + '">' +
+    list.innerHTML = tasks.map(t => {
+      const desc = extractDescription(t.body);
+      return '<div class="task-card" data-filename="' + esc(t.filename) + '" data-priority="' + esc(t.priority) + '">' +
         '<div class="task-title">' + esc(t.title) + '</div>' +
         '<div class="task-meta">' + esc(t.priority) + (t.created ? ' · ' + esc(t.created) : '') + '</div>' +
-        (t.description ? '<div class="task-desc">' + esc(t.description) + '</div>' : '') +
-      '</div>'
-    ).join('');
+        (desc ? '<div class="task-desc">' + esc(desc) + '</div>' : '') +
+      '</div>';
+    }).join('');
   }
 }
 
@@ -274,10 +275,25 @@ function esc(s) {
   return d.innerHTML;
 }
 
+function extractDescription(body) {
+  if (!body) return '';
+  const lines = body.split('\\n');
+  const textLines = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('#') || trimmed.startsWith('<!--') || !trimmed) continue;
+    if (trimmed.startsWith('- [ ]') || trimmed.startsWith('- [x]')) continue;
+    if (trimmed.startsWith('---')) continue;
+    textLines.push(trimmed);
+    if (textLines.length >= 2) break;
+  }
+  return textLines.join(' ').slice(0, 120);
+}
+
 async function loadTasks() {
   const res = await fetch('/api/tasks');
   const data = await res.json();
-  renderTasks(data);
+  renderTasks(data.tasks);
 }
 
 function initSortable() {

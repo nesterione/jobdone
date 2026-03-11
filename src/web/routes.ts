@@ -1,4 +1,8 @@
-import type { JobdoneConfig } from "../lib/config.js";
+import {
+  type JobdoneConfig,
+  validateField,
+  validateTitle,
+} from "../lib/config.js";
 import {
   createTask,
   findTaskById,
@@ -31,8 +35,20 @@ export function createRouteHandler(
     }
 
     if (req.method === "GET" && url.pathname === "/api/tasks") {
-      const tasks = await readAllTasks(cwd, config.fields.status ?? []);
-      return Response.json(tasks);
+      const statuses = config.fields.status ?? [];
+      const grouped = await readAllTasks(cwd, statuses);
+      const tasks: Record<string, unknown[]> = {};
+      for (const status of statuses) {
+        tasks[status] = (grouped[status] ?? []).map((t) => ({
+          filename: t.filename,
+          status: t.status,
+          title: t.title,
+          priority: t.priority,
+          created: t.created,
+          body: t.raw,
+        }));
+      }
+      return Response.json({ statuses, tasks });
     }
 
     if (req.method === "POST" && url.pathname === "/api/tasks") {
@@ -41,26 +57,22 @@ export function createRouteHandler(
         priority?: string;
       };
 
-      if (!body.title || !body.title.trim()) {
-        return Response.json({ error: "Title is required" }, { status: 400 });
+      const titleErr = validateTitle(body.title);
+      if (titleErr) {
+        return Response.json({ error: titleErr }, { status: 400 });
       }
 
-      if (
-        body.priority &&
-        !(config.fields.priority ?? []).includes(body.priority)
-      ) {
-        return Response.json(
-          {
-            error: `Invalid priority. Must be one of: ${(config.fields.priority ?? []).join(", ")}`,
-          },
-          { status: 400 },
-        );
+      if (body.priority) {
+        const priorityErr = validateField("priority", body.priority, config);
+        if (priorityErr) {
+          return Response.json({ error: priorityErr }, { status: 400 });
+        }
       }
 
       try {
         const result = await createTask({
           cwd,
-          title: body.title.trim(),
+          title: (body.title as string).trim(),
           priority: body.priority,
           config,
         });
@@ -82,11 +94,13 @@ export function createRouteHandler(
       if (!body.filename || !body.from || !body.to) {
         return Response.json({ error: "Missing fields" }, { status: 400 });
       }
-      if (
-        !(config.fields.status ?? []).includes(body.from) ||
-        !(config.fields.status ?? []).includes(body.to)
-      ) {
-        return Response.json({ error: "Invalid status" }, { status: 400 });
+      const fromErr = validateField("status", body.from, config);
+      if (fromErr) {
+        return Response.json({ error: fromErr }, { status: 400 });
+      }
+      const toErr = validateField("status", body.to, config);
+      if (toErr) {
+        return Response.json({ error: toErr }, { status: 400 });
       }
       try {
         await moveTask(cwd, body.filename, body.from, body.to);
@@ -108,8 +122,9 @@ export function createRouteHandler(
       if (!body.filename || !body.status || body.newIndex === undefined) {
         return Response.json({ error: "Missing fields" }, { status: 400 });
       }
-      if (!(config.fields.status ?? []).includes(body.status)) {
-        return Response.json({ error: "Invalid status" }, { status: 400 });
+      const statusErr = validateField("status", body.status, config);
+      if (statusErr) {
+        return Response.json({ error: statusErr }, { status: 400 });
       }
       try {
         await reorderTasksInColumn(
@@ -145,28 +160,22 @@ export function createRouteHandler(
         body?: string;
       };
 
-      if (
-        body.frontMatter?.priority &&
-        !(config.fields.priority ?? []).includes(
+      if (body.frontMatter?.priority) {
+        const priorityErr = validateField(
+          "priority",
           body.frontMatter.priority as string,
-        )
-      ) {
-        return Response.json(
-          {
-            error: `Invalid priority. Must be one of: ${(config.fields.priority ?? []).join(", ")}`,
-          },
-          { status: 400 },
+          config,
         );
+        if (priorityErr) {
+          return Response.json({ error: priorityErr }, { status: 400 });
+        }
       }
 
-      if (
-        body.frontMatter?.title !== undefined &&
-        !(body.frontMatter.title as string).trim()
-      ) {
-        return Response.json(
-          { error: "Title cannot be empty" },
-          { status: 400 },
-        );
+      if (body.frontMatter?.title !== undefined) {
+        const titleErr = validateTitle(body.frontMatter.title as string);
+        if (titleErr) {
+          return Response.json({ error: titleErr }, { status: 400 });
+        }
       }
 
       try {

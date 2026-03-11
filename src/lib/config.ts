@@ -54,6 +54,13 @@ export function validateField(
   return null;
 }
 
+export function validateTitle(title: string | undefined | null): string | null {
+  if (!title || !title.trim()) {
+    return "Title is required";
+  }
+  return null;
+}
+
 export async function loadConfig(cwd: string): Promise<JobdoneConfig> {
   const configPath = getConfigPath(cwd);
   try {
