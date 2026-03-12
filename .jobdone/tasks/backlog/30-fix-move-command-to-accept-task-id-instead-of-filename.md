@@ -1,7 +1,7 @@
 ---
 priority: medium
 created: 06.03.2026
-position: 0
+position: 3
 ---
 The move command requires a full filename (e.g. 1-fix-bug.md) which is cumbersome — users should be able to use the numeric task ID like other commands.
 
