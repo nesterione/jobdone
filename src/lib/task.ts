@@ -148,18 +148,26 @@ export async function readAllTasks(
   return result;
 }
 
+export interface MoveTaskResult {
+  ok: true;
+  filename: string;
+  from: string;
+  to: string;
+}
+
 export async function moveTask(
   cwd: string,
   filename: string,
   from: string,
   to: string,
-): Promise<void> {
+): Promise<MoveTaskResult> {
   const tasksPath = getTasksPath(cwd);
   const srcPath = path.join(tasksPath, from, filename);
   const destPath = path.join(tasksPath, to, filename);
 
   await fs.mkdir(path.join(tasksPath, to), { recursive: true });
   await fs.rename(srcPath, destPath);
+  return { ok: true, filename, from, to };
 }
 
 async function writePositionToFile(
@@ -283,7 +291,7 @@ export async function updateTask(
   statuses: string[],
   id: number,
   updates: UpdateTaskOptions,
-): Promise<{ filename: string; status: string }> {
+): Promise<{ id: number; filename: string; status: string }> {
   const task = await findTaskById(cwd, statuses, id);
   if (!task) {
     throw new Error(`Task ${id} not found.`);
@@ -317,12 +325,15 @@ export async function updateTask(
     await fs.writeFile(oldPath, content, "utf-8");
   }
 
-  return { filename: newFilename, status: task.status };
+  return { id, filename: newFilename, status: task.status };
 }
 
 export interface CreateTaskResult {
+  id: number;
   filename: string;
   relativePath: string;
+  status: string;
+  priority: string;
 }
 
 export async function createTask(options: {
@@ -399,5 +410,11 @@ export async function createTask(options: {
   await fs.writeFile(filePath, content, "utf-8");
 
   const relativePath = `.jobdone/tasks/${initialStatus}/${filename}`;
-  return { filename, relativePath };
+  return {
+    id: nextIndex,
+    filename,
+    relativePath,
+    status: initialStatus,
+    priority,
+  };
 }

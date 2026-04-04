@@ -88,6 +88,48 @@ describe("move command", () => {
     expect(result.stdout.toString()).toContain("already in");
   });
 
+  test("--json outputs structured JSON on success", async () => {
+    await fs.writeFile(
+      path.join(getTasksPath(tmpDir), "todo", "1-fix-bug.md"),
+      "---\ntitle: Fix bug\npriority: high\ncreated: 15.02.2026\n---\n",
+    );
+
+    const result = runCli(["move", "1-fix-bug.md", "doing", "--json"], tmpDir);
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout.toString());
+    expect(output.ok).toBe(true);
+    expect(output.filename).toBe("1-fix-bug.md");
+    expect(output.from).toBe("todo");
+    expect(output.to).toBe("doing");
+  });
+
+  test("--json outputs already-in-status as success", async () => {
+    await fs.writeFile(
+      path.join(getTasksPath(tmpDir), "doing", "1-task.md"),
+      "---\ntitle: Task\n---\n",
+    );
+
+    const result = runCli(["move", "1-task.md", "doing", "--json"], tmpDir);
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout.toString());
+    expect(output.ok).toBe(true);
+    expect(output.from).toBe("doing");
+    expect(output.to).toBe("doing");
+  });
+
+  test("--json outputs error to stderr for invalid status", async () => {
+    await fs.writeFile(
+      path.join(getTasksPath(tmpDir), "todo", "1-task.md"),
+      "---\ntitle: Task\n---\n",
+    );
+
+    const result = runCli(["move", "1-task.md", "invalid", "--json"], tmpDir);
+    expect(result.exitCode).toBe(1);
+    const err = JSON.parse(result.stderr.toString());
+    expect(err.error).toContain("Invalid status");
+    expect(result.stdout.toString().trim()).toBe("");
+  });
+
   test("fails if .jobdone/ is missing", async () => {
     const emptyDir = path.join(tmpDir, "empty");
     await fs.mkdir(emptyDir, { recursive: true });

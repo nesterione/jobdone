@@ -1,7 +1,7 @@
 ---
 priority: high
 created: 06.03.2026
-position: 2
+position: 5
 ---
 The --body argument treats \n as a literal backslash-n instead of a newline, producing garbled formatting in task files.
 

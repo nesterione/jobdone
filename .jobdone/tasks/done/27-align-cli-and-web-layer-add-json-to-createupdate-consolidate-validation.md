@@ -2,6 +2,7 @@
 priority: medium
 created: 04.03.2026
 title: "Align CLI and web layer: add --json to create/update, consolidate validation"
+position: 2
 ---
 ## Why
 

@@ -127,6 +127,39 @@ describe("update command", () => {
     expect(content).toContain("type: bug");
   });
 
+  test("--json outputs structured JSON on success", async () => {
+    await fs.writeFile(
+      path.join(getTasksPath(tmpDir), "todo", "1-fix-bug.md"),
+      TASK_CONTENT,
+    );
+
+    const result = runCli(
+      ["update", "1", "--set", "priority=high", "--json"],
+      tmpDir,
+    );
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout.toString());
+    expect(output.id).toBe(1);
+    expect(output.filename).toBe("1-fix-bug.md");
+    expect(output.status).toBe("todo");
+  });
+
+  test("--json outputs error to stderr on invalid priority", async () => {
+    await fs.writeFile(
+      path.join(getTasksPath(tmpDir), "todo", "1-fix-bug.md"),
+      TASK_CONTENT,
+    );
+
+    const result = runCli(
+      ["update", "1", "--set", "priority=invalid", "--json"],
+      tmpDir,
+    );
+    expect(result.exitCode).toBe(1);
+    const err = JSON.parse(result.stderr.toString());
+    expect(err.error).toContain("Invalid priority");
+    expect(result.stdout.toString().trim()).toBe("");
+  });
+
   test("fails with no updates provided", () => {
     const result = runCli(["update", "1"], tmpDir);
     expect(result.exitCode).toBe(1);

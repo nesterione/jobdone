@@ -182,6 +182,31 @@ describe("create command", () => {
     expect(result.stderr.toString()).toContain("Invalid priority");
   });
 
+  test("--json outputs structured JSON on success", async () => {
+    const result = runCli(
+      ["create", "Json task", "--priority", "high", "--json"],
+      tmpDir,
+    );
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout.toString());
+    expect(output.id).toBe(1);
+    expect(output.filename).toBe("1-json-task.md");
+    expect(output.status).toBe("todo");
+    expect(output.priority).toBe("high");
+  });
+
+  test("--json outputs error to stderr on invalid priority", () => {
+    const result = runCli(
+      ["create", "Bad task", "--priority", "urgent", "--json"],
+      tmpDir,
+    );
+    expect(result.exitCode).toBe(1);
+    const err = JSON.parse(result.stderr.toString());
+    expect(err.error).toContain("Invalid priority");
+    // stdout should be empty
+    expect(result.stdout.toString().trim()).toBe("");
+  });
+
   test("--body and --set can be combined", async () => {
     runCli(
       [

@@ -1,7 +1,7 @@
 ---
 priority: low
 created: 26.02.2026
-position: 10
+position: 13
 ---
 
 Task filenames are generated from the full title with no length limit, producing unwieldy paths that are hard to read and may hit OS or tool length constraints.
